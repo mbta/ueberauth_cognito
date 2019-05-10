@@ -1,18 +1,5 @@
 defmodule UeberauthCognito do
   @moduledoc """
-  Documentation for UeberauthCognito.
+  Ueuberauth strategy for AWS Cognito
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> UeberauthCognito.hello
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end
