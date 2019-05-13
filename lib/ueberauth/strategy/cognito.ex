@@ -111,7 +111,7 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp get_config do
-    config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito.OAuth) || %{}
+    config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
 
     [:auth_domain, :redirect_uri, :client_id, :client_secret]
     |> Enum.map(fn c -> {c, config_value(config[c])} end)

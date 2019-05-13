@@ -28,7 +28,7 @@ config :ueberauth, Ueberauth,
 and configure the required values:
 
 ```ex
-config :ueberauth, Ueberauth.Strategy.Cognito.OAuth,
+config :ueberauth, Ueberauth.Strategy.Cognito,
   auth_domain: {System, :get_env, ["COGNITO_DOMAIN"]},
   redirect_uri: {System, :get_env, ["COGNITO_REDIRECT_URI"]},
   client_id: {System, :get_env, ["COGNITO_CLIENT_ID"]},
