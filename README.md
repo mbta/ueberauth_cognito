@@ -11,7 +11,7 @@ defp deps do
   [
     # ...
     {:ueberauth, "~> 0.1"},
-    {:ueberauth_cognito, "~> "0.1"}
+    {:ueberauth_cognito, git: "https://github.com/mbta/ueberauth_cognito.git"}
   ]
 end
 ```
