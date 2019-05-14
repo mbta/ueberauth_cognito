@@ -3,7 +3,7 @@ defmodule Ueberauth.Strategy.Cognito do
   require Logger
 
   def handle_request!(conn) do
-    Logger.info("handling!")
+    state = "#{:rand.uniform(10_000_000)}"
 
     %{
       auth_domain: auth_domain,
@@ -15,8 +15,7 @@ defmodule Ueberauth.Strategy.Cognito do
       response_type: "code",
       client_id: client_id,
       redirect_uri: redirect_uri,
-      # TODO: include state
-      # state: state,
+      state: state,
       # TODO - make dynamic:
       scope: "openid profile email"
       # TODO: code challenge
@@ -27,51 +26,67 @@ defmodule Ueberauth.Strategy.Cognito do
     url = "https://#{auth_domain}/oauth2/authorize?" <> URI.encode_query(params)
 
     conn
+    |> fetch_session()
+    |> put_session("cognito_state", state)
     |> redirect!(url)
     |> halt()
   end
 
-  def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
-    %{
-      auth_domain: auth_domain,
-      client_id: client_id,
-      client_secret: client_secret,
-      redirect_uri: redirect_uri
-    } = get_config()
+  def handle_callback!(%Plug.Conn{params: %{"code" => code, "state" => state}} = conn) do
+    expected_state =
+      conn
+      |> fetch_session()
+      |> get_session("cognito_state")
 
-    auth = Base.encode64("#{client_id}:#{client_secret}")
+    conn =
+      if state == expected_state do
+        %{
+          auth_domain: auth_domain,
+          client_id: client_id,
+          client_secret: client_secret,
+          redirect_uri: redirect_uri
+        } = get_config()
 
-    params = %{
-      grant_type: "authorization_code",
-      code: code,
-      client_id: client_id,
-      redirect_uri: redirect_uri
-    }
+        auth = Base.encode64("#{client_id}:#{client_secret}")
 
-    response =
-      :hackney.request(
-        :post,
-        "https://#{auth_domain}/oauth2/token",
-        [
-          {"content-type", "application/x-www-form-urlencoded"},
-          {"authorization", "Basic #{auth}"}
-        ],
-        URI.encode_query(params)
-      )
+        params = %{
+          grant_type: "authorization_code",
+          code: code,
+          client_id: client_id,
+          redirect_uri: redirect_uri
+        }
 
-    case response do
-      {:ok, 200, _headers, client_ref} ->
-        {:ok, body} = :hackney.body(client_ref)
-        token = Jason.decode!(body)
+        response =
+          :hackney.request(
+            :post,
+            "https://#{auth_domain}/oauth2/token",
+            [
+              {"content-type", "application/x-www-form-urlencoded"},
+              {"authorization", "Basic #{auth}"}
+            ],
+            URI.encode_query(params)
+          )
 
-        # TODO: verify signature
-        [_header, payload, _sig] = String.split(token["id_token"], ".")
-        id_token = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
+        case response do
+          {:ok, 200, _headers, client_ref} ->
+            {:ok, body} = :hackney.body(client_ref)
+            token = Jason.decode!(body)
 
-        conn
-        |> put_private(:cognito_token, token)
-        |> put_private(:cognito_id_token, id_token)
-    end
+            # TODO: verify signature
+            [_header, payload, _sig] = String.split(token["id_token"], ".")
+            id_token = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
+
+            conn
+            |> put_private(:cognito_token, token)
+            |> put_private(:cognito_id_token, id_token)
+        end
+      else
+        set_errors!(conn, error("bad_state", "State parameter doesn't match"))
+      end
+
+    conn
+    |> fetch_session()
+    |> delete_session("cognito_state")
   end
 
   def credentials(conn) do
