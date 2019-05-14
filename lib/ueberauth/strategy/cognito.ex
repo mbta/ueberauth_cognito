@@ -7,14 +7,13 @@ defmodule Ueberauth.Strategy.Cognito do
 
     %{
       auth_domain: auth_domain,
-      redirect_uri: redirect_uri,
       client_id: client_id
     } = get_config()
 
     params = %{
       response_type: "code",
       client_id: client_id,
-      redirect_uri: redirect_uri,
+      redirect_uri: callback_url(conn),
       state: state,
       # TODO - make dynamic:
       scope: "openid profile email"
@@ -43,8 +42,7 @@ defmodule Ueberauth.Strategy.Cognito do
         %{
           auth_domain: auth_domain,
           client_id: client_id,
-          client_secret: client_secret,
-          redirect_uri: redirect_uri
+          client_secret: client_secret
         } = get_config()
 
         auth = Base.encode64("#{client_id}:#{client_secret}")
@@ -53,7 +51,7 @@ defmodule Ueberauth.Strategy.Cognito do
           grant_type: "authorization_code",
           code: code,
           client_id: client_id,
-          redirect_uri: redirect_uri
+          redirect_uri: callback_url(conn)
         }
 
         response =
@@ -128,7 +126,7 @@ defmodule Ueberauth.Strategy.Cognito do
   defp get_config do
     config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
 
-    [:auth_domain, :redirect_uri, :client_id, :client_secret]
+    [:auth_domain, :client_id, :client_secret]
     |> Enum.map(fn c -> {c, config_value(config[c])} end)
     |> Enum.into(%{})
   end

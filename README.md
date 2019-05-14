@@ -30,7 +30,6 @@ and configure the required values:
 ```ex
 config :ueberauth, Ueberauth.Strategy.Cognito,
   auth_domain: {System, :get_env, ["COGNITO_DOMAIN"]},
-  redirect_uri: {System, :get_env, ["COGNITO_REDIRECT_URI"]},
   client_id: {System, :get_env, ["COGNITO_CLIENT_ID"]},
   client_secret: {System, :get_env, ["COGNITO_CLIENT_SECRET"]}
 ```
@@ -65,3 +64,5 @@ defmodule SignsUiWeb.AuthController do
   end
 end
 ```
+
+Note that the entry in the `router` defines the authentication callback URL, and will need to be whitelisted in the AWS Cognito User Pools settings.
