@@ -87,6 +87,10 @@ defmodule Ueberauth.Strategy.Cognito do
     |> delete_session("cognito_state")
   end
 
+  def handle_callback!(conn) do
+    set_errors!(conn, error("bad_callback", "Missing state or code param"))
+  end
+
   def credentials(conn) do
     token = conn.private.cognito_token
 
