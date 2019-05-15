@@ -103,8 +103,8 @@ defmodule Ueberauth.Strategy.Cognito do
     }
   end
 
-  def uid(_conn) do
-    "TBD"
+  def uid(conn) do
+    conn.private.cognito_id_token["cognito:username"]
   end
 
   def info(_conn) do
