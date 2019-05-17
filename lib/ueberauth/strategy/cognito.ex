@@ -29,7 +29,7 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   def handle_callback!(%Plug.Conn{params: %{"code" => code, "state" => state}} = conn) do
-    http_client = Application.get_env(:ueberauth_cognito, :__http_client)
+    http_client = Application.get_env(:ueberauth_cognito, :__http_client, :hackney)
 
     expected_state =
       conn

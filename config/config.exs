@@ -28,6 +28,4 @@ use Mix.Config
 # here (which is why it is important to import them last).
 #
 
-config :ueberauth_cognito, __http_client: :hackney
-
 # import_config "#{Mix.env()}.exs"
