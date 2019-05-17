@@ -1,8 +1,8 @@
 defmodule Ueberauth.Strategy.Cognito do
   use Ueberauth.Strategy
-  require Logger
 
   def handle_request!(conn) do
+    # TODO: use :crypto.strong_rand_bytes()
     state = "#{:rand.uniform(10_000_000)}"
 
     %{
@@ -15,11 +15,8 @@ defmodule Ueberauth.Strategy.Cognito do
       client_id: client_id,
       redirect_uri: callback_url(conn),
       state: state,
-      # TODO - make dynamic:
+      # TODO - make dynamic (accepting PRs!):
       scope: "openid profile email"
-      # TODO: code challenge
-      # code_challenge: "",
-      # code_challenge_method: "S256"
     }
 
     url = "https://#{auth_domain}/oauth2/authorize?" <> URI.encode_query(params)
@@ -32,6 +29,8 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   def handle_callback!(%Plug.Conn{params: %{"code" => code, "state" => state}} = conn) do
+    http_client = Application.get_env(:ueberauth_cognito, :__http_client)
+
     expected_state =
       conn
       |> fetch_session()
@@ -55,7 +54,7 @@ defmodule Ueberauth.Strategy.Cognito do
         }
 
         response =
-          :hackney.request(
+          http_client.request(
             :post,
             "https://#{auth_domain}/oauth2/token",
             [
@@ -67,16 +66,18 @@ defmodule Ueberauth.Strategy.Cognito do
 
         case response do
           {:ok, 200, _headers, client_ref} ->
-            {:ok, body} = :hackney.body(client_ref)
+            {:ok, body} = http_client.body(client_ref)
             token = Jason.decode!(body)
 
-            # TODO: verify signature
             [_header, payload, _sig] = String.split(token["id_token"], ".")
             id_token = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
 
             conn
             |> put_private(:cognito_token, token)
             |> put_private(:cognito_id_token, id_token)
+
+          _ ->
+            set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
         end
       else
         set_errors!(conn, error("bad_state", "State parameter doesn't match"))
@@ -96,7 +97,7 @@ defmodule Ueberauth.Strategy.Cognito do
 
     expires_at =
       if token["expires_in"] do
-        DateTime.to_unix(DateTime.utc_now()) + token["expires_in"]
+        System.system_time(:seconds) + token["expires_in"]
       end
 
     %Ueberauth.Auth.Credentials{

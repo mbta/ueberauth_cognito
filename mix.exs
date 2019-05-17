@@ -7,7 +7,8 @@ defmodule UeberauthCognito.MixProject do
       version: "0.1.0",
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -21,6 +22,7 @@ defmodule UeberauthCognito.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:excoveralls, "~> 0.9.0", only: :test},
       {:hackney, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:ueberauth, "~> 0.6"}
