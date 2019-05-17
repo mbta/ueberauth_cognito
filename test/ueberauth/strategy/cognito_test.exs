@@ -100,6 +100,26 @@ defmodule Ueberauth.Strategy.CognitoTest do
              } = conn.assigns
     end
 
+    test "returns error if state param is missing" do
+      conn =
+        conn(:get, "/auth/cognito/callback?code=abc")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> put_session("cognito_state", "345")
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert %{
+               ueberauth_failure: %Ueberauth.Failure{
+                 errors: [
+                   %Ueberauth.Failure.Error{
+                     message_key: "no_state"
+                   }
+                 ]
+               }
+             } = conn.assigns
+    end
+
     test "returns error if no code provided" do
       conn =
         conn(:get, "/auth/cognito/callback?state=123")
@@ -113,7 +133,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
                ueberauth_failure: %Ueberauth.Failure{
                  errors: [
                    %Ueberauth.Failure.Error{
-                     message_key: "bad_callback"
+                     message_key: "no_code"
                    }
                  ]
                }

@@ -27,9 +27,7 @@ defmodule Ueberauth.Strategy.Cognito do
     |> halt()
   end
 
-  def handle_callback!(%Plug.Conn{params: %{"code" => code, "state" => state}} = conn) do
-    http_client = Application.get_env(:ueberauth_cognito, :__http_client, :hackney)
-
+  def handle_callback!(%Plug.Conn{params: %{"state" => state}} = conn) do
     expected_state =
       conn
       |> fetch_session()
@@ -37,47 +35,7 @@ defmodule Ueberauth.Strategy.Cognito do
 
     conn =
       if state == expected_state do
-        %{
-          auth_domain: auth_domain,
-          client_id: client_id,
-          client_secret: client_secret
-        } = get_config()
-
-        auth = Base.encode64("#{client_id}:#{client_secret}")
-
-        params = %{
-          grant_type: "authorization_code",
-          code: code,
-          client_id: client_id,
-          redirect_uri: callback_url(conn)
-        }
-
-        response =
-          http_client.request(
-            :post,
-            "https://#{auth_domain}/oauth2/token",
-            [
-              {"content-type", "application/x-www-form-urlencoded"},
-              {"authorization", "Basic #{auth}"}
-            ],
-            URI.encode_query(params)
-          )
-
-        case response do
-          {:ok, 200, _headers, client_ref} ->
-            {:ok, body} = http_client.body(client_ref)
-            token = Jason.decode!(body)
-
-            [_header, payload, _sig] = String.split(token["id_token"], ".")
-            id_token = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
-
-            conn
-            |> put_private(:cognito_token, token)
-            |> put_private(:cognito_id_token, id_token)
-
-          _ ->
-            set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
-        end
+        exchange_code_for_token(conn)
       else
         set_errors!(conn, error("bad_state", "State parameter doesn't match"))
       end
@@ -88,7 +46,65 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   def handle_callback!(conn) do
-    set_errors!(conn, error("bad_callback", "Missing state or code param"))
+    set_errors!(conn, error("no_state", "Missing state param"))
+  end
+
+  defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
+    http_client = Application.get_env(:ueberauth_cognito, :__http_client, :hackney)
+
+    case request_token(conn, code, http_client) do
+      {:ok, 200, _headers, client_ref} ->
+        {:ok, body} = http_client.body(client_ref)
+
+        {token, id_token} = extract_tokens(body)
+
+        conn
+        |> put_private(:cognito_token, token)
+        |> put_private(:cognito_id_token, id_token)
+
+      _ ->
+        set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
+    end
+  end
+
+  defp exchange_code_for_token(conn) do
+    set_errors!(conn, error("no_code", "Missing code param"))
+  end
+
+  defp request_token(conn, code, http_client) do
+    %{
+      auth_domain: auth_domain,
+      client_id: client_id,
+      client_secret: client_secret
+    } = get_config()
+
+    auth = Base.encode64("#{client_id}:#{client_secret}")
+
+    params = %{
+      grant_type: "authorization_code",
+      code: code,
+      client_id: client_id,
+      redirect_uri: callback_url(conn)
+    }
+
+    http_client.request(
+      :post,
+      "https://#{auth_domain}/oauth2/token",
+      [
+        {"content-type", "application/x-www-form-urlencoded"},
+        {"authorization", "Basic #{auth}"}
+      ],
+      URI.encode_query(params)
+    )
+  end
+
+  defp extract_tokens(body) do
+    token = Jason.decode!(body)
+
+    [_header, payload, _sig] = String.split(token["id_token"], ".")
+    id_token = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
+
+    {token, id_token}
   end
 
   def credentials(conn) do
