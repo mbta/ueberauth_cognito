@@ -25,6 +25,7 @@ defmodule UeberauthCognito.MixProject do
       {:excoveralls, "~> 0.9.0", only: :test},
       {:hackney, "~> 1.0"},
       {:jason, "~> 1.0"},
+      {:jose, "~> 1.0"},
       {:ueberauth, "~> 0.6"}
     ]
   end

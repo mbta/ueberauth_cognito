@@ -4,11 +4,15 @@ defmodule Ueberauth.Strategy.CognitoTest do
   alias Ueberauth.Strategy.Cognito
 
   defmodule FakeHackneySuccess do
-    def request(_method, _url, _headers, _body) do
-      {:ok, 200, [], :success_ref}
+    def request(:post, _url, _headers, _body) do
+      {:ok, 200, [], :successful_post_ref}
     end
 
-    def body(:success_ref) do
+    def request(:get, "https://cognito-idp" <> _) do
+      {:ok, 200, [], :success_jwks}
+    end
+
+    def body(:successful_post_ref) do
       id_token_payload =
         %{"email" => "foo"}
         |> Jason.encode!()
@@ -23,6 +27,10 @@ defmodule Ueberauth.Strategy.CognitoTest do
 
       {:ok, Jason.encode!(token)}
     end
+
+    def body(:success_jwks) do
+      {:ok, Jason.encode!(%{})}
+    end
   end
 
   defmodule FakeHackneyError do
@@ -35,12 +43,24 @@ defmodule Ueberauth.Strategy.CognitoTest do
     end
   end
 
+  defmodule FakeJwtVerifierSuccess do
+    def verify(tok, _jwks, _client_id) do
+      [_header, payload, _sig] = String.split(tok, ".")
+      claims = Base.url_decode64!(payload, padding: false)
+      {:ok, Jason.decode!(claims)}
+    end
+  end
+
   setup do
     Application.put_env(:ueberauth, Ueberauth.Strategy.Cognito, %{
       auth_domain: "testdomain.com",
       client_id: "the_client_id",
-      client_secret: {IO, :inspect, ["the_client_secret"]}
+      client_secret: {IO, :inspect, ["the_client_secret"]},
+      user_pool_id: "the_user_pool_id",
+      aws_region: "us-east-1"
     })
+
+    Application.put_env(:ueberauth_cognito, :__jwt_verifier, FakeJwtVerifierSuccess)
   end
 
   describe "handle_request!" do

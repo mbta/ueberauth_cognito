@@ -31,7 +31,9 @@ and configure the required values:
 config :ueberauth, Ueberauth.Strategy.Cognito,
   auth_domain: {System, :get_env, ["COGNITO_DOMAIN"]},
   client_id: {System, :get_env, ["COGNITO_CLIENT_ID"]},
-  client_secret: {System, :get_env, ["COGNITO_CLIENT_SECRET"]}
+  client_secret: {System, :get_env, ["COGNITO_CLIENT_SECRET"]},
+  user_pool_id: {System, :get_env, ["COGNITO_USER_POOL_ID]},
+  aws_region: {System, :get_env, ["COGNITO_AWS_REGION]} # e.g. "us-east-1"
 ```
 
 The values can be configured with an MFA, or simply a string.

@@ -52,23 +52,66 @@ defmodule Ueberauth.Strategy.Cognito do
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
     http_client = Application.get_env(:ueberauth_cognito, :__http_client, :hackney)
 
+    jwt_verifier =
+      Application.get_env(
+        :ueberauth_cognito,
+        :__jwt_verifier,
+        Ueberauth.Strategy.Cognito.JwtUtilities
+      )
+
+    %{client_id: client_id} = get_config()
+
     case request_token(conn, code, http_client) do
-      {:ok, 200, _headers, client_ref} ->
-        {:ok, body} = http_client.body(client_ref)
+      {:ok, token} ->
+        case request_jwks(http_client) do
+          {:ok, jwks} ->
+            case jwt_verifier.verify(
+                   token["id_token"],
+                   jwks,
+                   client_id
+                 ) do
+              {:ok, id_token} ->
+                conn
+                |> put_private(:cognito_token, token)
+                |> put_private(:cognito_id_token, id_token)
 
-        {token, id_token} = extract_tokens(body)
+              {:error, _} ->
+                set_errors!(conn, error("bad_id_token", "Could not validate JWT id_token"))
+            end
 
-        conn
-        |> put_private(:cognito_token, token)
-        |> put_private(:cognito_id_token, id_token)
+          {:error, _} ->
+            set_errors!(conn, error("jwks_response", "Error fetching JWKs"))
+        end
 
-      _ ->
+      {:error, _} ->
         set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
     end
   end
 
   defp exchange_code_for_token(conn) do
     set_errors!(conn, error("no_code", "Missing code param"))
+  end
+
+  defp request_jwks(http_client) do
+    %{
+      aws_region: aws_region,
+      user_pool_id: user_pool_id
+    } = get_config()
+
+    response =
+      http_client.request(
+        :get,
+        "https://cognito-idp.#{aws_region}.amazonaws.com/#{user_pool_id}/.well-known/jwks.json"
+      )
+
+    case response do
+      {:ok, 200, _headers, ref} ->
+        {:ok, body} = http_client.body(ref)
+        {:ok, Jason.decode!(body)}
+
+      _ ->
+        {:error, :cannot_fetch_jwks}
+    end
   end
 
   defp request_token(conn, code, http_client) do
@@ -87,24 +130,25 @@ defmodule Ueberauth.Strategy.Cognito do
       redirect_uri: callback_url(conn)
     }
 
-    http_client.request(
-      :post,
-      "https://#{auth_domain}/oauth2/token",
-      [
-        {"content-type", "application/x-www-form-urlencoded"},
-        {"authorization", "Basic #{auth}"}
-      ],
-      URI.encode_query(params)
-    )
-  end
+    response =
+      http_client.request(
+        :post,
+        "https://#{auth_domain}/oauth2/token",
+        [
+          {"content-type", "application/x-www-form-urlencoded"},
+          {"authorization", "Basic #{auth}"}
+        ],
+        URI.encode_query(params)
+      )
 
-  defp extract_tokens(body) do
-    token = Jason.decode!(body)
+    case response do
+      {:ok, 200, _headers, client_ref} ->
+        {:ok, body} = http_client.body(client_ref)
+        {:ok, Jason.decode!(body)}
 
-    [_header, payload, _sig] = String.split(token["id_token"], ".")
-    id_token = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
-
-    {token, id_token}
+      _ ->
+        {:error, :cannot_fetch_tokens}
+    end
   end
 
   def credentials(conn) do
@@ -146,7 +190,9 @@ defmodule Ueberauth.Strategy.Cognito do
   defp get_config do
     config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
 
-    Map.new([:auth_domain, :client_id, :client_secret], fn c -> {c, config_value(config[c])} end)
+    Map.new([:auth_domain, :client_id, :client_secret, :user_pool_id, :aws_region], fn c ->
+      {c, config_value(config[c])}
+    end)
   end
 
   defp config_value(value) when is_binary(value), do: value
