@@ -2,8 +2,7 @@ defmodule Ueberauth.Strategy.Cognito do
   use Ueberauth.Strategy
 
   def handle_request!(conn) do
-    # TODO: use :crypto.strong_rand_bytes()
-    state = "#{:rand.uniform(10_000_000)}"
+    state = :crypto.strong_rand_bytes(32) |> Base.encode16()
 
     %{
       auth_domain: auth_domain,
