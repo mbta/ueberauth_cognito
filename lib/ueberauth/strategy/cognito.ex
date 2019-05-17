@@ -146,9 +146,7 @@ defmodule Ueberauth.Strategy.Cognito do
   defp get_config do
     config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
 
-    [:auth_domain, :client_id, :client_secret]
-    |> Enum.map(fn c -> {c, config_value(config[c])} end)
-    |> Enum.into(%{})
+    Map.new([:auth_domain, :client_id, :client_secret], fn c -> {c, config_value(config[c])} end)
   end
 
   defp config_value(value) when is_binary(value), do: value
