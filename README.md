@@ -1,5 +1,8 @@
 # UeberauthCognito
 
+[![Build Status](https://semaphoreci.com/api/v1/mbta/ueberauth_cognito/branches/master/shields_badge.svg)](https://semaphoreci.com/mbta/ueberauth_cognito)
+[![Codecov](https://codecov.io/gh/mbta/ueberauth_cognito/branch/master/graph/badge.svg)](https://codecov.io/gh/mbta/ueberauth_cognito)
+
 An Ueberauth Strategy for AWS Cognito.
 
 ## Installation
