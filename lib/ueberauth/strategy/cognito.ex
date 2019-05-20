@@ -66,32 +66,28 @@ defmodule Ueberauth.Strategy.Cognito do
       user_pool_id: user_pool_id
     } = get_config()
 
-    case request_token(conn, code, http_client) do
-      {:ok, token} ->
-        case request_jwks(http_client) do
-          {:ok, jwks} ->
-            case jwt_verifier.verify(
-                   token["id_token"],
-                   jwks,
-                   client_id,
-                   aws_region,
-                   user_pool_id
-                 ) do
-              {:ok, id_token} ->
-                conn
-                |> put_private(:cognito_token, token)
-                |> put_private(:cognito_id_token, id_token)
-
-              {:error, _} ->
-                set_errors!(conn, error("bad_id_token", "Could not validate JWT id_token"))
-            end
-
-          {:error, _} ->
-            set_errors!(conn, error("jwks_response", "Error fetching JWKs"))
-        end
-
-      {:error, _} ->
+    with {:ok, token} <- request_token(conn, code, http_client),
+         {:ok, jwks} <- request_jwks(http_client),
+         {:ok, id_token} <-
+           jwt_verifier.verify(
+             token["id_token"],
+             jwks,
+             client_id,
+             aws_region,
+             user_pool_id
+           ) do
+      conn
+      |> put_private(:cognito_token, token)
+      |> put_private(:cognito_id_token, id_token)
+    else
+      {:error, :cannot_fetch_tokens} ->
         set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
+
+      {:error, :cannot_fetch_jwks} ->
+        set_errors!(conn, error("jwks_response", "Error fetching JWKs"))
+
+      {:error, :invalid_jwt} ->
+        set_errors!(conn, error("bad_id_token", "Could not validate JWT id_token"))
     end
   end
 
@@ -148,11 +144,11 @@ defmodule Ueberauth.Strategy.Cognito do
         URI.encode_query(params)
       )
 
-    case response do
-      {:ok, 200, _headers, client_ref} ->
-        {:ok, body} = http_client.body(client_ref)
-        {:ok, Jason.decode!(body)}
-
+    with {:ok, 200, _headers, client_ref} <- response,
+         {:ok, body} <- http_client.body(client_ref),
+         decoded_json <- Jason.decode!(body) do
+      {:ok, decoded_json}
+    else
       _ ->
         {:error, :cannot_fetch_tokens}
     end
