@@ -1,7 +1,9 @@
-defmodule Ueberauth.Strategy.Cognito.JwtUtilities do
+defmodule Ueberauth.Strategy.Cognito.JwtVerifier do
   @moduledoc """
   Utilities for working with JSON Web Tokens
   """
+
+  alias Ueberauth.Strategy.Cognito.Utilities
 
   @doc "Verifies that a JWT is valid: the signature is correct,
   and the audience is the AWS client_id"
@@ -12,8 +14,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilities do
          {:ok, claims} <- Jason.decode(claims_json),
          true <- claims["aud"] == client_id,
          true <- claims["exp"] > System.system_time(:seconds),
-         true <-
-           claims["iss"] == "https://cognito-idp.#{aws_region}.amazonaws.com/#{user_pool_id}",
+         true <- claims["iss"] == Utilities.jwk_url_prefix(aws_region, user_pool_id),
          true <- claims["token_use"] in ["id", "access"] do
       {:ok, claims}
     else

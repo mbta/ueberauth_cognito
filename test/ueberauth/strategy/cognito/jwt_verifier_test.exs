@@ -1,4 +1,4 @@
-defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
+defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
   use ExUnit.Case
 
   @test_private_key_1 """
@@ -74,7 +74,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
         |> JOSE.JWS.compact()
 
       assert {:ok, ^jwt} =
-               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+               Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
                  "test_client_id",
@@ -95,7 +95,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
         |> JOSE.JWS.compact()
 
       assert {:error, :invalid_jwt} ==
-               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+               Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
                  "test_client_id",
@@ -116,7 +116,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
         |> JOSE.JWS.compact()
 
       assert {:error, :invalid_jwt} ==
-               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+               Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
                  "test_client_id",
@@ -137,7 +137,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
         |> JOSE.JWS.compact()
 
       assert {:error, :invalid_jwt} ==
-               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+               Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
                  "test_client_id",
@@ -158,7 +158,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
         |> JOSE.JWS.compact()
 
       assert {:error, :invalid_jwt} ==
-               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+               Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
                  "test_client_id",
@@ -179,7 +179,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
         |> JOSE.JWS.compact()
 
       assert {:error, :invalid_jwt} ==
-               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+               Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
                  "test_client_id",

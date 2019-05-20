@@ -1,5 +1,6 @@
 defmodule Ueberauth.Strategy.Cognito do
   use Ueberauth.Strategy
+  alias Ueberauth.Strategy.Cognito.Utilities
 
   def handle_request!(conn) do
     state = :crypto.strong_rand_bytes(32) |> Base.encode16()
@@ -56,7 +57,7 @@ defmodule Ueberauth.Strategy.Cognito do
       Application.get_env(
         :ueberauth_cognito,
         :__jwt_verifier,
-        Ueberauth.Strategy.Cognito.JwtUtilities
+        Ueberauth.Strategy.Cognito.JwtVerifier
       )
 
     %{
@@ -107,7 +108,7 @@ defmodule Ueberauth.Strategy.Cognito do
     response =
       http_client.request(
         :get,
-        "https://cognito-idp.#{aws_region}.amazonaws.com/#{user_pool_id}/.well-known/jwks.json"
+        Utilities.jwk_url_prefix(aws_region, user_pool_id) <> "/.well-known/jwks.json"
       )
 
     case response do
