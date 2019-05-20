@@ -11,7 +11,8 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilities do
     Enum.find_value(individual_jwks, {:error, :invalid_jwt}, fn jwk ->
       with {true, claims_json, _} <- JOSE.JWS.verify_strict(jwk, ["RS256"], jwt),
            {:ok, claims} <- Jason.decode(claims_json),
-           true <- claims["aud"] == client_id do
+           true <- claims["aud"] == client_id,
+           true <- claims["exp"] > System.system_time(:seconds) do
         {:ok, claims}
       else
         _ ->

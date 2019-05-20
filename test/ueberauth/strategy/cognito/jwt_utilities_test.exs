@@ -139,5 +139,31 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
                  "test_client_id"
                )
     end
+
+    test "doesn't verify an expired JWT" do
+      rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
+      rsa_public_jwk = JOSE.JWK.to_public(rsa_private_jwk)
+
+      jws = %{
+        "alg" => "RS256"
+      }
+
+      jwt = %{
+        "iss" => "test",
+        "exp" => System.system_time(:seconds) - 500,
+        "aud" => "test_client_id"
+      }
+
+      {_algo_meta, signed_jwt} =
+        JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
+        |> JOSE.JWS.compact()
+
+      assert {:error, :invalid_jwt} ==
+               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+                 signed_jwt,
+                 %{"keys" => [rsa_public_jwk]},
+                 "test_client_id"
+               )
+    end
   end
 end
