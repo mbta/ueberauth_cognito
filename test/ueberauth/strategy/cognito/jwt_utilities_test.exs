@@ -66,25 +66,20 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
       rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
       rsa_public_jwk = JOSE.JWK.to_public(rsa_private_jwk)
 
-      jws = %{
-        "alg" => "RS256"
-      }
-
-      jwt = %{
-        "iss" => "test",
-        "exp" => System.system_time(:seconds) + 500,
-        "aud" => "test_client_id"
-      }
+      jws = valid_jws()
+      jwt = valid_jwt()
 
       {_algo_meta, signed_jwt} =
         JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
         |> JOSE.JWS.compact()
 
-      assert {:ok, %{"aud" => "test_client_id", "iss" => "test"}} =
+      assert {:ok, ^jwt} =
                Ueberauth.Strategy.Cognito.JwtUtilities.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id"
+                 "test_client_id",
+                 "aws_region",
+                 "user_pool_id"
                )
     end
 
@@ -92,15 +87,8 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
       rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
       rsa_public_jwk = JOSE.JWK.from_pem(@test_private_key_2) |> JOSE.JWK.to_public()
 
-      jws = %{
-        "alg" => "RS256"
-      }
-
-      jwt = %{
-        "iss" => "test",
-        "exp" => System.system_time(:seconds) + 500,
-        "aud" => "test_client_id"
-      }
+      jws = valid_jws()
+      jwt = valid_jwt()
 
       {_algo_meta, signed_jwt} =
         JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
@@ -110,7 +98,9 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
                Ueberauth.Strategy.Cognito.JwtUtilities.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id"
+                 "test_client_id",
+                 "aws_region",
+                 "user_pool_id"
                )
     end
 
@@ -118,15 +108,8 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
       rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
       rsa_public_jwk = JOSE.JWK.to_public(rsa_private_jwk)
 
-      jws = %{
-        "alg" => "RS256"
-      }
-
-      jwt = %{
-        "iss" => "test",
-        "exp" => System.system_time(:seconds) + 500,
-        "aud" => "wrong_client_id"
-      }
+      jws = valid_jws()
+      jwt = %{valid_jwt() | "aud" => "wrong_client_id"}
 
       {_algo_meta, signed_jwt} =
         JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
@@ -136,7 +119,9 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
                Ueberauth.Strategy.Cognito.JwtUtilities.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id"
+                 "test_client_id",
+                 "aws_region",
+                 "user_pool_id"
                )
     end
 
@@ -144,15 +129,8 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
       rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
       rsa_public_jwk = JOSE.JWK.to_public(rsa_private_jwk)
 
-      jws = %{
-        "alg" => "RS256"
-      }
-
-      jwt = %{
-        "iss" => "test",
-        "exp" => System.system_time(:seconds) - 500,
-        "aud" => "test_client_id"
-      }
+      jws = valid_jws()
+      jwt = %{valid_jwt() | "exp" => System.system_time(:seconds) - 500}
 
       {_algo_meta, signed_jwt} =
         JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
@@ -162,8 +140,67 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilitiesTest do
                Ueberauth.Strategy.Cognito.JwtUtilities.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id"
+                 "test_client_id",
+                 "aws_region",
+                 "user_pool_id"
                )
     end
+
+    test "doesn't verify when the issuer is wrong" do
+      rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
+      rsa_public_jwk = JOSE.JWK.to_public(rsa_private_jwk)
+
+      jws = valid_jws()
+      jwt = %{valid_jwt() | "iss" => "some_other_issuer"}
+
+      {_algo_meta, signed_jwt} =
+        JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
+        |> JOSE.JWS.compact()
+
+      assert {:error, :invalid_jwt} ==
+               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+                 signed_jwt,
+                 %{"keys" => [rsa_public_jwk]},
+                 "test_client_id",
+                 "aws_region",
+                 "user_pool_id"
+               )
+    end
+
+    test "doesn't verify when the token_use is not 'id' or 'access'" do
+      rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
+      rsa_public_jwk = JOSE.JWK.to_public(rsa_private_jwk)
+
+      jws = valid_jws()
+      jwt = %{valid_jwt() | "token_use" => "some_other_purpose"}
+
+      {_algo_meta, signed_jwt} =
+        JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
+        |> JOSE.JWS.compact()
+
+      assert {:error, :invalid_jwt} ==
+               Ueberauth.Strategy.Cognito.JwtUtilities.verify(
+                 signed_jwt,
+                 %{"keys" => [rsa_public_jwk]},
+                 "test_client_id",
+                 "aws_region",
+                 "user_pool_id"
+               )
+    end
+  end
+
+  defp valid_jws do
+    %{
+      "alg" => "RS256"
+    }
+  end
+
+  defp valid_jwt do
+    %{
+      "iss" => "https://cognito-idp.aws_region.amazonaws.com/user_pool_id",
+      "exp" => System.system_time(:seconds) + 500,
+      "aud" => "test_client_id",
+      "token_use" => "id"
+    }
   end
 end

@@ -59,7 +59,11 @@ defmodule Ueberauth.Strategy.Cognito do
         Ueberauth.Strategy.Cognito.JwtUtilities
       )
 
-    %{client_id: client_id} = get_config()
+    %{
+      client_id: client_id,
+      aws_region: aws_region,
+      user_pool_id: user_pool_id
+    } = get_config()
 
     case request_token(conn, code, http_client) do
       {:ok, token} ->
@@ -68,7 +72,9 @@ defmodule Ueberauth.Strategy.Cognito do
             case jwt_verifier.verify(
                    token["id_token"],
                    jwks,
-                   client_id
+                   client_id,
+                   aws_region,
+                   user_pool_id
                  ) do
               {:ok, id_token} ->
                 conn

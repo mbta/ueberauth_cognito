@@ -5,11 +5,14 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilities do
 
   @doc "Verifies that a JWT is valid: the signature is correct,
   and the audience is the AWS client_id"
-  def verify(jwt, jwks, client_id) do
+  def verify(jwt, jwks, client_id, aws_region, user_pool_id) do
     with {:ok, claims_json} <- verified_claims(jwks["keys"], jwt),
          {:ok, claims} <- Jason.decode(claims_json),
          true <- claims["aud"] == client_id,
-         true <- claims["exp"] > System.system_time(:seconds) do
+         true <- claims["exp"] > System.system_time(:seconds),
+         true <-
+           claims["iss"] == "https://cognito-idp.#{aws_region}.amazonaws.com/#{user_pool_id}",
+         true <- claims["token_use"] in ["id", "access"] do
       {:ok, claims}
     else
       _ ->

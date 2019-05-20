@@ -74,7 +74,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
   end
 
   defmodule FakeJwtVerifierSuccess do
-    def verify(tok, _jwks, _client_id) do
+    def verify(tok, _jwks, _client_id, _aws_region, _user_pool_id) do
       [_header, payload, _sig] = String.split(tok, ".")
       claims = Base.url_decode64!(payload, padding: false)
       {:ok, Jason.decode!(claims)}
@@ -82,7 +82,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
   end
 
   defmodule FakeJwtVerifierFailure do
-    def verify(_tok, _jwks, _client_id) do
+    def verify(_tok, _jwks, _client_id, _aws_region, _user_pool_id) do
       {:error, :invalid_jwt}
     end
   end
