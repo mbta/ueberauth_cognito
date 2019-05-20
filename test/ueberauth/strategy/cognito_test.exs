@@ -87,11 +87,15 @@ defmodule Ueberauth.Strategy.CognitoTest do
     end
   end
 
+  defmodule Identity do
+    def id(x), do: x
+  end
+
   setup do
     Application.put_env(:ueberauth, Ueberauth.Strategy.Cognito, %{
       auth_domain: "testdomain.com",
       client_id: "the_client_id",
-      client_secret: {IO, :inspect, ["the_client_secret"]},
+      client_secret: {Ueberauth.Strategy.CognitoTest.Identity, :id, ["the_client_secret"]},
       user_pool_id: "the_user_pool_id",
       aws_region: "us-east-1"
     })
