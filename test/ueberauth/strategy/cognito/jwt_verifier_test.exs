@@ -61,6 +61,14 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
   -----END RSA PRIVATE KEY-----
   """
 
+  @config %Ueberauth.Strategy.Cognito.Config{
+    auth_domain: "test_domain",
+    client_id: "test_client_id",
+    client_secret: "test_client_secret",
+    user_pool_id: "user_pool_id",
+    aws_region: "aws_region"
+  }
+
   describe "verify/3" do
     test "verifies a correctly-signed JWT" do
       rsa_private_jwk = JOSE.JWK.from_pem(@test_private_key_1)
@@ -77,9 +85,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
                Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id",
-                 "aws_region",
-                 "user_pool_id"
+                 @config
                )
     end
 
@@ -98,9 +104,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
                Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id",
-                 "aws_region",
-                 "user_pool_id"
+                 @config
                )
     end
 
@@ -119,9 +123,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
                Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id",
-                 "aws_region",
-                 "user_pool_id"
+                 @config
                )
     end
 
@@ -140,9 +142,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
                Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id",
-                 "aws_region",
-                 "user_pool_id"
+                 @config
                )
     end
 
@@ -161,9 +161,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
                Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id",
-                 "aws_region",
-                 "user_pool_id"
+                 @config
                )
     end
 
@@ -182,9 +180,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
                Ueberauth.Strategy.Cognito.JwtVerifier.verify(
                  signed_jwt,
                  %{"keys" => [rsa_public_jwk]},
-                 "test_client_id",
-                 "aws_region",
-                 "user_pool_id"
+                 @config
                )
     end
   end
@@ -197,9 +193,9 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
 
   defp valid_jwt do
     %{
-      "iss" => "https://cognito-idp.aws_region.amazonaws.com/user_pool_id",
+      "iss" => "https://cognito-idp.#{@config.aws_region}.amazonaws.com/#{@config.user_pool_id}",
       "exp" => System.system_time(:seconds) + 500,
-      "aud" => "test_client_id",
+      "aud" => @config.client_id,
       "token_use" => "id"
     }
   end

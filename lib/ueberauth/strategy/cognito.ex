@@ -1,6 +1,7 @@
 defmodule Ueberauth.Strategy.Cognito do
   use Ueberauth.Strategy
   alias Ueberauth.Strategy.Cognito.Utilities
+  alias Ueberauth.Strategy.Cognito.Config
 
   def handle_request!(conn) do
     state = :crypto.strong_rand_bytes(32) |> Base.encode16()
@@ -8,7 +9,7 @@ defmodule Ueberauth.Strategy.Cognito do
     %{
       auth_domain: auth_domain,
       client_id: client_id
-    } = get_config()
+    } = Config.get_config()
 
     params = %{
       response_type: "code",
@@ -60,11 +61,7 @@ defmodule Ueberauth.Strategy.Cognito do
         Ueberauth.Strategy.Cognito.JwtVerifier
       )
 
-    %{
-      client_id: client_id,
-      aws_region: aws_region,
-      user_pool_id: user_pool_id
-    } = get_config()
+    config = Config.get_config()
 
     with {:ok, token} <- request_token(conn, code, http_client),
          {:ok, jwks} <- request_jwks(http_client),
@@ -72,9 +69,7 @@ defmodule Ueberauth.Strategy.Cognito do
            jwt_verifier.verify(
              token["id_token"],
              jwks,
-             client_id,
-             aws_region,
-             user_pool_id
+             config
            ) do
       conn
       |> put_private(:cognito_token, token)
@@ -96,15 +91,12 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp request_jwks(http_client) do
-    %{
-      aws_region: aws_region,
-      user_pool_id: user_pool_id
-    } = get_config()
+    config = Config.get_config()
 
     response =
       http_client.request(
         :get,
-        Utilities.jwk_url_prefix(aws_region, user_pool_id) <> "/.well-known/jwks.json"
+        Utilities.jwk_url_prefix(config) <> "/.well-known/jwks.json"
       )
 
     case response do
@@ -122,7 +114,7 @@ defmodule Ueberauth.Strategy.Cognito do
       auth_domain: auth_domain,
       client_id: client_id,
       client_secret: client_secret
-    } = get_config()
+    } = Config.get_config()
 
     auth = Base.encode64("#{client_id}:#{client_secret}")
 
@@ -189,15 +181,4 @@ defmodule Ueberauth.Strategy.Cognito do
     |> put_private(:cognito_token, nil)
     |> put_private(:cognito_id_token, nil)
   end
-
-  defp get_config do
-    config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
-
-    Map.new([:auth_domain, :client_id, :client_secret, :user_pool_id, :aws_region], fn c ->
-      {c, config_value(config[c])}
-    end)
-  end
-
-  defp config_value(value) when is_binary(value), do: value
-  defp config_value({m, f, a}), do: apply(m, f, a)
 end
