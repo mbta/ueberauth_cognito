@@ -6,26 +6,17 @@ defmodule Ueberauth.Strategy.Cognito.JwtUtilities do
   @doc "Verifies that a JWT is valid: the signature is correct,
   and the audience is the AWS client_id"
   def verify(jwt, jwks, client_id) do
-    [header, _payload, _sig] = String.split(jwt, ".")
+    individual_jwks = Enum.map(jwks["keys"], &JOSE.JWK.from(&1))
 
-    key_id =
-      header
-      |> Base.url_decode64!(padding: false)
-      |> Jason.decode!()
-      |> Map.get("kid")
-
-    jwk =
-      jwks["keys"]
-      |> Enum.find(&(&1["kid"] == key_id))
-      |> JOSE.JWK.from()
-
-    with {true, claims_json, _} <- JOSE.JWS.verify_strict(jwk, ["RS256"], jwt),
-         {:ok, claims} <- Jason.decode(claims_json),
-         true <- claims["aud"] == client_id do
-      {:ok, claims}
-    else
-      _ ->
-        {:error, :invalid_jwt}
-    end
+    Enum.find_value(individual_jwks, {:error, :invalid_jwt}, fn jwk ->
+      with {true, claims_json, _} <- JOSE.JWS.verify_strict(jwk, ["RS256"], jwt),
+           {:ok, claims} <- Jason.decode(claims_json),
+           true <- claims["aud"] == client_id do
+        {:ok, claims}
+      else
+        _ ->
+          nil
+      end
+    end)
   end
 end
