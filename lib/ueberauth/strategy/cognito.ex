@@ -63,8 +63,8 @@ defmodule Ueberauth.Strategy.Cognito do
 
     config = Config.get_config()
 
-    with {:ok, token} <- request_token(conn, code, http_client),
-         {:ok, jwks} <- request_jwks(http_client),
+    with {:ok, token} <- request_token(conn, code, http_client, config),
+         {:ok, jwks} <- request_jwks(http_client, config),
          {:ok, id_token} <-
            jwt_verifier.verify(
              token["id_token"],
@@ -90,45 +90,33 @@ defmodule Ueberauth.Strategy.Cognito do
     set_errors!(conn, error("no_code", "Missing code param"))
   end
 
-  defp request_jwks(http_client) do
-    config = Config.get_config()
-
+  defp request_jwks(http_client, config) do
     response =
       http_client.request(
         :get,
         Utilities.jwk_url_prefix(config) <> "/.well-known/jwks.json"
       )
 
-    case response do
-      {:ok, 200, _headers, ref} ->
-        {:ok, body} = http_client.body(ref)
-        {:ok, Jason.decode!(body)}
-
-      _ ->
-        {:error, :cannot_fetch_jwks}
+    case process_json_response(response, http_client) do
+      {:ok, decoded_json} -> {:ok, decoded_json}
+      {:error, _} -> {:error, :cannot_fetch_jwks}
     end
   end
 
-  defp request_token(conn, code, http_client) do
-    %{
-      auth_domain: auth_domain,
-      client_id: client_id,
-      client_secret: client_secret
-    } = Config.get_config()
-
-    auth = Base.encode64("#{client_id}:#{client_secret}")
+  defp request_token(conn, code, http_client, config) do
+    auth = Base.encode64("#{config.client_id}:#{config.client_secret}")
 
     params = %{
       grant_type: "authorization_code",
       code: code,
-      client_id: client_id,
+      client_id: config.client_id,
       redirect_uri: callback_url(conn)
     }
 
     response =
       http_client.request(
         :post,
-        "https://#{auth_domain}/oauth2/token",
+        "https://#{config.auth_domain}/oauth2/token",
         [
           {"content-type", "application/x-www-form-urlencoded"},
           {"authorization", "Basic #{auth}"}
@@ -136,13 +124,20 @@ defmodule Ueberauth.Strategy.Cognito do
         URI.encode_query(params)
       )
 
+    case process_json_response(response, http_client) do
+      {:ok, decoded_json} -> {:ok, decoded_json}
+      {:error, _} -> {:error, :cannot_fetch_tokens}
+    end
+  end
+
+  defp process_json_response(response, http_client) do
     with {:ok, 200, _headers, client_ref} <- response,
          {:ok, body} <- http_client.body(client_ref),
          decoded_json <- Jason.decode!(body) do
       {:ok, decoded_json}
     else
       _ ->
-        {:error, :cannot_fetch_tokens}
+        {:error, :invalid_response}
     end
   end
 
