@@ -1,5 +1,7 @@
 defmodule Ueberauth.Strategy.Cognito do
   use Ueberauth.Strategy
+  alias Ueberauth.Strategy.Cognito.Utilities
+  alias Ueberauth.Strategy.Cognito.Config
 
   def handle_request!(conn) do
     state = :crypto.strong_rand_bytes(32) |> Base.encode16()
@@ -7,7 +9,7 @@ defmodule Ueberauth.Strategy.Cognito do
     %{
       auth_domain: auth_domain,
       client_id: client_id
-    } = get_config()
+    } = Config.get_config()
 
     params = %{
       response_type: "code",
@@ -50,20 +52,28 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
-    http_client = Application.get_env(:ueberauth_cognito, :__http_client, :hackney)
+    config = Config.get_config()
 
-    case request_token(conn, code, http_client) do
-      {:ok, 200, _headers, client_ref} ->
-        {:ok, body} = http_client.body(client_ref)
-
-        {token, id_token} = extract_tokens(body)
-
-        conn
-        |> put_private(:cognito_token, token)
-        |> put_private(:cognito_id_token, id_token)
-
-      _ ->
+    with {:ok, token} <- request_token(conn, code, config),
+         {:ok, jwks} <- request_jwks(config),
+         {:ok, id_token} <-
+           config.jwt_verifier.verify(
+             token["id_token"],
+             jwks,
+             config
+           ) do
+      conn
+      |> put_private(:cognito_token, token)
+      |> put_private(:cognito_id_token, id_token)
+    else
+      {:error, :cannot_fetch_tokens} ->
         set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
+
+      {:error, :cannot_fetch_jwks} ->
+        set_errors!(conn, error("jwks_response", "Error fetching JWKs"))
+
+      {:error, :invalid_jwt} ->
+        set_errors!(conn, error("bad_id_token", "Could not validate JWT id_token"))
     end
   end
 
@@ -71,40 +81,55 @@ defmodule Ueberauth.Strategy.Cognito do
     set_errors!(conn, error("no_code", "Missing code param"))
   end
 
-  defp request_token(conn, code, http_client) do
-    %{
-      auth_domain: auth_domain,
-      client_id: client_id,
-      client_secret: client_secret
-    } = get_config()
+  defp request_jwks(config) do
+    response =
+      config.http_client.request(
+        :get,
+        Utilities.jwk_url_prefix(config) <> "/.well-known/jwks.json"
+      )
 
-    auth = Base.encode64("#{client_id}:#{client_secret}")
+    case process_json_response(response, config.http_client) do
+      {:ok, decoded_json} -> {:ok, decoded_json}
+      {:error, _} -> {:error, :cannot_fetch_jwks}
+    end
+  end
+
+  defp request_token(conn, code, config) do
+    auth = Base.encode64("#{config.client_id}:#{config.client_secret}")
 
     params = %{
       grant_type: "authorization_code",
       code: code,
-      client_id: client_id,
+      client_id: config.client_id,
       redirect_uri: callback_url(conn)
     }
 
-    http_client.request(
-      :post,
-      "https://#{auth_domain}/oauth2/token",
-      [
-        {"content-type", "application/x-www-form-urlencoded"},
-        {"authorization", "Basic #{auth}"}
-      ],
-      URI.encode_query(params)
-    )
+    response =
+      config.http_client.request(
+        :post,
+        "https://#{config.auth_domain}/oauth2/token",
+        [
+          {"content-type", "application/x-www-form-urlencoded"},
+          {"authorization", "Basic #{auth}"}
+        ],
+        URI.encode_query(params)
+      )
+
+    case process_json_response(response, config.http_client) do
+      {:ok, decoded_json} -> {:ok, decoded_json}
+      {:error, _} -> {:error, :cannot_fetch_tokens}
+    end
   end
 
-  defp extract_tokens(body) do
-    token = Jason.decode!(body)
-
-    [_header, payload, _sig] = String.split(token["id_token"], ".")
-    id_token = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
-
-    {token, id_token}
+  defp process_json_response(response, http_client) do
+    with {:ok, 200, _headers, client_ref} <- response,
+         {:ok, body} <- http_client.body(client_ref),
+         decoded_json <- Jason.decode!(body) do
+      {:ok, decoded_json}
+    else
+      _ ->
+        {:error, :invalid_response}
+    end
   end
 
   def credentials(conn) do
@@ -142,13 +167,4 @@ defmodule Ueberauth.Strategy.Cognito do
     |> put_private(:cognito_token, nil)
     |> put_private(:cognito_id_token, nil)
   end
-
-  defp get_config do
-    config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
-
-    Map.new([:auth_domain, :client_id, :client_secret], fn c -> {c, config_value(config[c])} end)
-  end
-
-  defp config_value(value) when is_binary(value), do: value
-  defp config_value({m, f, a}), do: apply(m, f, a)
 end

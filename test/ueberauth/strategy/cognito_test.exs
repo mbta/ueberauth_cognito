@@ -4,11 +4,15 @@ defmodule Ueberauth.Strategy.CognitoTest do
   alias Ueberauth.Strategy.Cognito
 
   defmodule FakeHackneySuccess do
-    def request(_method, _url, _headers, _body) do
-      {:ok, 200, [], :success_ref}
+    def request(:post, _url, _headers, _body) do
+      {:ok, 200, [], :successful_post_ref}
     end
 
-    def body(:success_ref) do
+    def request(:get, "https://cognito-idp" <> _) do
+      {:ok, 200, [], :success_jwks}
+    end
+
+    def body(:successful_post_ref) do
       id_token_payload =
         %{"email" => "foo"}
         |> Jason.encode!()
@@ -23,6 +27,10 @@ defmodule Ueberauth.Strategy.CognitoTest do
 
       {:ok, Jason.encode!(token)}
     end
+
+    def body(:success_jwks) do
+      {:ok, Jason.encode!(%{})}
+    end
   end
 
   defmodule FakeHackneyError do
@@ -35,12 +43,64 @@ defmodule Ueberauth.Strategy.CognitoTest do
     end
   end
 
+  defmodule FakeHackneyJwkError do
+    def request(:post, _url, _headers, _body) do
+      {:ok, 200, [], :successful_post_ref}
+    end
+
+    def request(:get, "https://cognito-idp" <> _) do
+      {:ok, 404, [], :failure_jwks}
+    end
+
+    def body(:successful_post_ref) do
+      id_token_payload =
+        %{"email" => "foo"}
+        |> Jason.encode!()
+        |> Base.url_encode64(padding: false)
+
+      id_token = "header.#{id_token_payload}.signature"
+
+      token = %{
+        "access_token" => "the_access_token",
+        "id_token" => id_token
+      }
+
+      {:ok, Jason.encode!(token)}
+    end
+
+    def body(:failure_jwks) do
+      {:ok, ""}
+    end
+  end
+
+  defmodule FakeJwtVerifierSuccess do
+    def verify(tok, _jwks, _config) do
+      [_header, payload, _sig] = String.split(tok, ".")
+      claims = Base.url_decode64!(payload, padding: false)
+      {:ok, Jason.decode!(claims)}
+    end
+  end
+
+  defmodule FakeJwtVerifierFailure do
+    def verify(_tok, _jwks, _config) do
+      {:error, :invalid_jwt}
+    end
+  end
+
+  defmodule Identity do
+    def id(x), do: x
+  end
+
   setup do
     Application.put_env(:ueberauth, Ueberauth.Strategy.Cognito, %{
       auth_domain: "testdomain.com",
       client_id: "the_client_id",
-      client_secret: {IO, :inspect, ["the_client_secret"]}
+      client_secret: {Ueberauth.Strategy.CognitoTest.Identity, :id, ["the_client_secret"]},
+      user_pool_id: "the_user_pool_id",
+      aws_region: "us-east-1"
     })
+
+    Application.put_env(:ueberauth_cognito, :__jwt_verifier, FakeJwtVerifierSuccess)
   end
 
   describe "handle_request!" do
@@ -140,7 +200,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
              } = conn.assigns
     end
 
-    test "returns error if AWS responds with a non-200" do
+    test "returns error if AWS responds with a non-200 for JWT" do
       Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneyError)
 
       conn =
@@ -156,6 +216,51 @@ defmodule Ueberauth.Strategy.CognitoTest do
                  errors: [
                    %Ueberauth.Failure.Error{
                      message_key: "aws_response"
+                   }
+                 ]
+               }
+             } = conn.assigns
+    end
+
+    test "returns error if AWS responds with a non-200 for JWKs" do
+      Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneyJwkError)
+
+      conn =
+        conn(:get, "/auth/cognito/callback?state=123&code=abc")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> put_session("cognito_state", "123")
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert %{
+               ueberauth_failure: %Ueberauth.Failure{
+                 errors: [
+                   %Ueberauth.Failure.Error{
+                     message_key: "jwks_response"
+                   }
+                 ]
+               }
+             } = conn.assigns
+    end
+
+    test "returns error if JWT verifier fails" do
+      Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneySuccess)
+      Application.put_env(:ueberauth_cognito, :__jwt_verifier, FakeJwtVerifierFailure)
+
+      conn =
+        conn(:get, "/auth/cognito/callback?state=123&code=abc")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> put_session("cognito_state", "123")
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert %{
+               ueberauth_failure: %Ueberauth.Failure{
+                 errors: [
+                   %Ueberauth.Failure.Error{
+                     message_key: "bad_id_token"
                    }
                  ]
                }
