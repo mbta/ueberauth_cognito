@@ -52,21 +52,12 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
-    http_client = Application.get_env(:ueberauth_cognito, :__http_client, :hackney)
-
-    jwt_verifier =
-      Application.get_env(
-        :ueberauth_cognito,
-        :__jwt_verifier,
-        Ueberauth.Strategy.Cognito.JwtVerifier
-      )
-
     config = Config.get_config()
 
-    with {:ok, token} <- request_token(conn, code, http_client, config),
-         {:ok, jwks} <- request_jwks(http_client, config),
+    with {:ok, token} <- request_token(conn, code, config),
+         {:ok, jwks} <- request_jwks(config),
          {:ok, id_token} <-
-           jwt_verifier.verify(
+           config.jwt_verifier.verify(
              token["id_token"],
              jwks,
              config
@@ -90,20 +81,20 @@ defmodule Ueberauth.Strategy.Cognito do
     set_errors!(conn, error("no_code", "Missing code param"))
   end
 
-  defp request_jwks(http_client, config) do
+  defp request_jwks(config) do
     response =
-      http_client.request(
+      config.http_client.request(
         :get,
         Utilities.jwk_url_prefix(config) <> "/.well-known/jwks.json"
       )
 
-    case process_json_response(response, http_client) do
+    case process_json_response(response, config.http_client) do
       {:ok, decoded_json} -> {:ok, decoded_json}
       {:error, _} -> {:error, :cannot_fetch_jwks}
     end
   end
 
-  defp request_token(conn, code, http_client, config) do
+  defp request_token(conn, code, config) do
     auth = Base.encode64("#{config.client_id}:#{config.client_secret}")
 
     params = %{
@@ -114,7 +105,7 @@ defmodule Ueberauth.Strategy.Cognito do
     }
 
     response =
-      http_client.request(
+      config.http_client.request(
         :post,
         "https://#{config.auth_domain}/oauth2/token",
         [
@@ -124,7 +115,7 @@ defmodule Ueberauth.Strategy.Cognito do
         URI.encode_query(params)
       )
 
-    case process_json_response(response, http_client) do
+    case process_json_response(response, config.http_client) do
       {:ok, decoded_json} -> {:ok, decoded_json}
       {:error, _} -> {:error, :cannot_fetch_tokens}
     end
