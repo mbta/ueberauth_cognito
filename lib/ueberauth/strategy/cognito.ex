@@ -134,6 +134,7 @@ defmodule Ueberauth.Strategy.Cognito do
 
   def credentials(conn) do
     token = conn.private.cognito_token
+    id_token = conn.private.cognito_id_token
 
     expires_at =
       if token["expires_in"] do
@@ -144,7 +145,8 @@ defmodule Ueberauth.Strategy.Cognito do
       token: token["access_token"],
       refresh_token: token["refresh_token"],
       expires: !!expires_at,
-      expires_at: expires_at
+      expires_at: expires_at,
+      other: %{groups: id_token["cognito:groups"] || []}
     }
   end
 

@@ -284,12 +284,36 @@ defmodule Ueberauth.Strategy.CognitoTest do
         "access_token" => "access_token",
         "refresh_token" => "refresh_token"
       })
+      |> put_private(:cognito_id_token, %{"cognito:groups" => ["test1"]})
 
     assert %Ueberauth.Auth.Credentials{
              token: "access_token",
              refresh_token: "refresh_token",
              expires: true,
-             expires_at: expires_at
+             expires_at: expires_at,
+             other: %{groups: ["test1"]}
+           } = Cognito.credentials(conn)
+
+    assert expires_at >= System.system_time(:seconds) + 99
+    assert expires_at <= System.system_time(:seconds) + 101
+  end
+
+  test "credentials/1 without any group information" do
+    conn =
+      conn(:get, "/auth/cognito/callback")
+      |> put_private(:cognito_token, %{
+        "expires_in" => 100,
+        "access_token" => "access_token",
+        "refresh_token" => "refresh_token"
+      })
+      |> put_private(:cognito_id_token, %{})
+
+    assert %Ueberauth.Auth.Credentials{
+             token: "access_token",
+             refresh_token: "refresh_token",
+             expires: true,
+             expires_at: expires_at,
+             other: %{groups: []}
            } = Cognito.credentials(conn)
 
     assert expires_at >= System.system_time(:seconds) + 99
