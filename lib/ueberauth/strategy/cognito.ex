@@ -95,8 +95,6 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp request_token(conn, code, config) do
-    auth = Base.encode64("#{config.client_id}:#{config.client_secret}")
-
     params = %{
       grant_type: "authorization_code",
       code: code,
@@ -104,21 +102,26 @@ defmodule Ueberauth.Strategy.Cognito do
       redirect_uri: callback_url(conn)
     }
 
-    response =
-      config.http_client.request(
-        :post,
-        "https://#{config.auth_domain}/oauth2/token",
-        [
-          {"content-type", "application/x-www-form-urlencoded"},
-          {"authorization", "Basic #{auth}"}
-        ],
-        URI.encode_query(params)
-      )
+    response = post_to_token_endpoint(params, config)
 
     case process_json_response(response, config.http_client) do
       {:ok, decoded_json} -> {:ok, decoded_json}
       {:error, _} -> {:error, :cannot_fetch_tokens}
     end
+  end
+
+  defp post_to_token_endpoint(params, config) do
+    auth = Base.encode64("#{config.client_id}:#{config.client_secret}")
+
+    config.http_client.request(
+      :post,
+      "https://#{config.auth_domain}/oauth2/token",
+      [
+        {"content-type", "application/x-www-form-urlencoded"},
+        {"authorization", "Basic #{auth}"}
+      ],
+      URI.encode_query(params)
+    )
   end
 
   defp process_json_response(response, http_client) do
