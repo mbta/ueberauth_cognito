@@ -138,7 +138,7 @@ defmodule Ueberauth.Strategy.Cognito do
 
     expires_at =
       if token["expires_in"] do
-        System.system_time(:seconds) + token["expires_in"]
+        System.system_time(:second) + token["expires_in"]
       end
 
     %Ueberauth.Auth.Credentials{

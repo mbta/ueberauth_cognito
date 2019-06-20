@@ -294,8 +294,8 @@ defmodule Ueberauth.Strategy.CognitoTest do
              other: %{groups: ["test1"]}
            } = Cognito.credentials(conn)
 
-    assert expires_at >= System.system_time(:seconds) + 99
-    assert expires_at <= System.system_time(:seconds) + 101
+    assert expires_at >= System.system_time(:second) + 99
+    assert expires_at <= System.system_time(:second) + 101
   end
 
   test "credentials/1 without any group information" do
@@ -316,8 +316,8 @@ defmodule Ueberauth.Strategy.CognitoTest do
              other: %{groups: []}
            } = Cognito.credentials(conn)
 
-    assert expires_at >= System.system_time(:seconds) + 99
-    assert expires_at <= System.system_time(:seconds) + 101
+    assert expires_at >= System.system_time(:second) + 99
+    assert expires_at <= System.system_time(:second) + 101
   end
 
   test "info/1" do
