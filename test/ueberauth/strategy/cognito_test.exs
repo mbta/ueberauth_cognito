@@ -22,7 +22,8 @@ defmodule Ueberauth.Strategy.CognitoTest do
 
       token = %{
         "access_token" => "the_access_token",
-        "id_token" => id_token
+        "id_token" => id_token,
+        "refresh_token" => "a_refresh_token"
       }
 
       {:ok, Jason.encode!(token)}
@@ -120,7 +121,92 @@ defmodule Ueberauth.Strategy.CognitoTest do
     end
   end
 
-  describe "handle_callback!" do
+  describe "handle_callback! with refresh token" do
+    test "puts token information in conn if successful response from AWS" do
+      Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneySuccess)
+
+      conn =
+        conn(:get, "/auth/cognito/callback?refresh_token=abc")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert conn.private.cognito_id_token == %{"email" => "foo"}
+
+      assert conn.private.cognito_token == %{
+               "access_token" => "the_access_token",
+               "id_token" => "header.eyJlbWFpbCI6ImZvbyJ9.signature",
+               "refresh_token" => "a_refresh_token"
+             }
+    end
+
+    test "returns error if AWS responds with a non-200 for JWT" do
+      Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneyError)
+
+      conn =
+        conn(:get, "/auth/cognito/callback?refresh_token=123")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert %{
+               ueberauth_failure: %Ueberauth.Failure{
+                 errors: [
+                   %Ueberauth.Failure.Error{
+                     message_key: "aws_response"
+                   }
+                 ]
+               }
+             } = conn.assigns
+    end
+
+    test "returns error if AWS responds with a non-200 for JWKs" do
+      Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneyJwkError)
+
+      conn =
+        conn(:get, "/auth/cognito/callback?refresh_token=123")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert %{
+               ueberauth_failure: %Ueberauth.Failure{
+                 errors: [
+                   %Ueberauth.Failure.Error{
+                     message_key: "jwks_response"
+                   }
+                 ]
+               }
+             } = conn.assigns
+    end
+
+    test "returns error if JWT verifier fails" do
+      Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneySuccess)
+      Application.put_env(:ueberauth_cognito, :__jwt_verifier, FakeJwtVerifierFailure)
+
+      conn =
+        conn(:get, "/auth/cognito/callback?refresh_token=123")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert %{
+               ueberauth_failure: %Ueberauth.Failure{
+                 errors: [
+                   %Ueberauth.Failure.Error{
+                     message_key: "bad_id_token"
+                   }
+                 ]
+               }
+             } = conn.assigns
+    end
+  end
+
+  describe "handle_callback! without refresh token" do
     test "puts token information in conn if successful response from AWS" do
       Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneySuccess)
 
@@ -136,7 +222,8 @@ defmodule Ueberauth.Strategy.CognitoTest do
 
       assert conn.private.cognito_token == %{
                "access_token" => "the_access_token",
-               "id_token" => "header.eyJlbWFpbCI6ImZvbyJ9.signature"
+               "id_token" => "header.eyJlbWFpbCI6ImZvbyJ9.signature",
+               "refresh_token" => "a_refresh_token"
              }
     end
 

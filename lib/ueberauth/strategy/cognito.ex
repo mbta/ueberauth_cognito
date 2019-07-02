@@ -29,6 +29,17 @@ defmodule Ueberauth.Strategy.Cognito do
     |> halt()
   end
 
+  def handle_callback!(%Plug.Conn{params: %{"refresh_token" => refresh_token}} = conn) do
+    config = Config.get_config()
+
+    with {:ok, token} <- request_token_refresh(refresh_token, config) do
+      conn = extract_and_verify_token(conn, token, config)
+    else
+      {:error, :cannot_refresh_access_token} ->
+        set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
+    end
+  end
+
   def handle_callback!(%Plug.Conn{params: %{"state" => state}} = conn) do
     expected_state =
       conn
@@ -54,31 +65,43 @@ defmodule Ueberauth.Strategy.Cognito do
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
     config = Config.get_config()
 
-    with {:ok, token} <- request_token(conn, code, config),
-         {:ok, jwks} <- request_jwks(config),
+    with {:ok, token} <- request_token(conn, code, config) do
+      extract_and_verify_token(conn, token, config)
+    else
+      {:error, :cannot_fetch_tokens} ->
+        set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
+    end
+  end
+
+  defp exchange_code_for_token(conn) do
+    set_errors!(conn, error("no_code", "Missing code param"))
+  end
+
+  defp extract_and_verify_token(conn, token, config) do
+    with {:ok, jwks} <- request_jwks(config),
          {:ok, id_token} <-
            config.jwt_verifier.verify(
              token["id_token"],
              jwks,
              config
            ) do
-      conn
-      |> put_private(:cognito_token, token)
-      |> put_private(:cognito_id_token, id_token)
-    else
-      {:error, :cannot_fetch_tokens} ->
-        set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
+      conn =
+        conn
+        |> put_private(:cognito_token, token)
+        |> put_private(:cognito_id_token, id_token)
 
+      if token["refresh_token"] do
+        put_private(conn, :cognito_refresh_token, token["refresh_token"])
+      else
+        conn
+      end
+    else
       {:error, :cannot_fetch_jwks} ->
         set_errors!(conn, error("jwks_response", "Error fetching JWKs"))
 
       {:error, :invalid_jwt} ->
         set_errors!(conn, error("bad_id_token", "Could not validate JWT id_token"))
     end
-  end
-
-  defp exchange_code_for_token(conn) do
-    set_errors!(conn, error("no_code", "Missing code param"))
   end
 
   defp request_jwks(config) do
@@ -107,6 +130,22 @@ defmodule Ueberauth.Strategy.Cognito do
     case process_json_response(response, config.http_client) do
       {:ok, decoded_json} -> {:ok, decoded_json}
       {:error, _} -> {:error, :cannot_fetch_tokens}
+    end
+  end
+
+  defp request_token_refresh(refresh_token, config) do
+    params = %{
+      grant_type: "refresh_token",
+      refresh_token: refresh_token,
+      client_id: config.client_id,
+      client_secret: config.client_secret
+    }
+
+    response = post_to_token_endpoint(params, config)
+
+    case process_json_response(response, config.http_client) do
+      {:ok, decoded_json} -> {:ok, decoded_json}
+      {:error, _} -> {:error, :cannot_refresh_access_token}
     end
   end
 
