@@ -33,7 +33,7 @@ defmodule Ueberauth.Strategy.Cognito do
     config = Config.get_config()
 
     with {:ok, token} <- request_token_refresh(refresh_token, config) do
-      conn = extract_and_verify_token(conn, token, config)
+      extract_and_verify_token(conn, token, config)
     else
       {:error, :cannot_refresh_access_token} ->
         set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
@@ -85,16 +85,9 @@ defmodule Ueberauth.Strategy.Cognito do
              jwks,
              config
            ) do
-      conn =
-        conn
-        |> put_private(:cognito_token, token)
-        |> put_private(:cognito_id_token, id_token)
-
-      if token["refresh_token"] do
-        put_private(conn, :cognito_refresh_token, token["refresh_token"])
-      else
-        conn
-      end
+      conn
+      |> put_private(:cognito_token, token)
+      |> put_private(:cognito_id_token, id_token)
     else
       {:error, :cannot_fetch_jwks} ->
         set_errors!(conn, error("jwks_response", "Error fetching JWKs"))
