@@ -134,7 +134,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
       rsa_public_jwk = JOSE.JWK.to_public(rsa_private_jwk)
 
       jws = valid_jws()
-      jwt = %{valid_jwt() | "exp" => System.system_time(:seconds) - 500}
+      jwt = %{valid_jwt() | "exp" => System.system_time(:second) - 500}
 
       {_algo_meta, signed_jwt} =
         JOSE.JWT.sign(rsa_private_jwk, jws, jwt)
@@ -196,7 +196,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
   defp valid_jwt do
     %{
       "iss" => "https://cognito-idp.#{@config.aws_region}.amazonaws.com/#{@config.user_pool_id}",
-      "exp" => System.system_time(:seconds) + 500,
+      "exp" => System.system_time(:second) + 500,
       "aud" => @config.client_id,
       "token_use" => "id"
     }

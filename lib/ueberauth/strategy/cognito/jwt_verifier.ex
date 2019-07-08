@@ -11,7 +11,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifier do
     with {:ok, claims_json} <- verified_claims(jwks, jwt),
          {:ok, claims} <- Jason.decode(claims_json),
          true <- claims["aud"] == config.client_id,
-         true <- claims["exp"] > System.system_time(:seconds),
+         true <- claims["exp"] > System.system_time(:second),
          true <- claims["iss"] == Utilities.jwk_url_prefix(config),
          true <- claims["token_use"] in ["id", "access"] do
       {:ok, claims}
