@@ -155,7 +155,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
                ueberauth_failure: %Ueberauth.Failure{
                  errors: [
                    %Ueberauth.Failure.Error{
-                     message_key: "aws_response"
+                     message_key: "refresh_token_failure"
                    }
                  ]
                }

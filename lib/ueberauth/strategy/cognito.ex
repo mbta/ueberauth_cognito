@@ -36,7 +36,10 @@ defmodule Ueberauth.Strategy.Cognito do
       extract_and_verify_token(conn, token, config)
     else
       {:error, :cannot_refresh_access_token} ->
-        set_errors!(conn, error("aws_response", "Non-200 error code from AWS"))
+        set_errors!(
+          conn,
+          error("refresh_token_failure", "Non-200 error code from AWS when using refresh token")
+        )
     end
   end
 
