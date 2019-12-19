@@ -1,8 +1,33 @@
 defmodule Ueberauth.Strategy.Cognito do
+  @moduledoc """
+  Implements an `Ueberauth.Strategy` for AWS Cognito.
+
+  Several options are available for configuring the strategy. The main keys you need to
+  worry about are:
+
+  * `auth_domain`
+  * `client_id`
+  * `client_secret`
+  * `user_pool_id`
+  * `aws_region`
+
+  These should all be available from your AWS Cognito setup. Additionally, there are a
+  couple of options specifying what modules to use for some particular functions:
+
+  * `http_client`
+  * `jwt_verifier`
+
+  These are mainly used for dependency injection when testing and users of this library
+  shouldn't have to concern themselves with them.
+  """
+
   use Ueberauth.Strategy
   alias Ueberauth.Strategy.Cognito.Utilities
   alias Ueberauth.Strategy.Cognito.Config
 
+  @doc """
+  Handle the request step of the strategy.
+  """
   def handle_request!(conn) do
     state = :crypto.strong_rand_bytes(32) |> Base.encode16()
 
@@ -29,6 +54,12 @@ defmodule Ueberauth.Strategy.Cognito do
     |> halt()
   end
 
+  @doc """
+  Handle the callback step of the strategy.
+
+  Note that if the `refresh_token` param set in your `conn`, this will attempt to use the
+  given refresh token rather than the normal Cognito flow.
+  """
   def handle_callback!(%Plug.Conn{params: %{"refresh_token" => refresh_token}} = conn) do
     config = Config.get_config()
 
@@ -170,6 +201,11 @@ defmodule Ueberauth.Strategy.Cognito do
     end
   end
 
+  @doc """
+  Returns standard `Ueberauth.Auth.Credentials` struct. The `other` key will be a map
+  including a `groups` key, which is a list of any groups the user is associated with in
+  Cognito
+  """
   def credentials(conn) do
     token = conn.private.cognito_token
     id_token = conn.private.cognito_id_token
@@ -188,20 +224,33 @@ defmodule Ueberauth.Strategy.Cognito do
     }
   end
 
+  @doc """
+  Returns the username given in the Cognito response.
+  """
   def uid(conn) do
     conn.private.cognito_id_token["cognito:username"]
   end
 
+  @doc """
+  Currently doesn't return any additional information.
+  """
   def info(_conn) do
     %Ueberauth.Auth.Info{}
   end
 
+  @doc """
+  The `raw_info` key of the returned struct includes everything from the raw Cognito
+  response in `cognito_id_token`.
+  """
   def extra(conn) do
     %Ueberauth.Auth.Extra{
       raw_info: conn.private.cognito_id_token
     }
   end
 
+  @doc """
+  Handles the cleanup step of the strategy.
+  """
   def handle_cleanup!(conn) do
     conn
     |> put_private(:cognito_token, nil)

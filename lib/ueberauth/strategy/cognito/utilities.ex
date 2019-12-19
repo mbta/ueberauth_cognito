@@ -1,4 +1,6 @@
 defmodule Ueberauth.Strategy.Cognito.Utilities do
+  @moduledoc false
+
   def jwk_url_prefix(%Ueberauth.Strategy.Cognito.Config{
         aws_region: aws_region,
         user_pool_id: user_pool_id

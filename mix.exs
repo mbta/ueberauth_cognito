@@ -12,7 +12,11 @@ defmodule UeberauthCognito.MixProject do
       description: description(),
       package: package(),
       name: "Ueberauth AWS Cognito Strategy",
-      source_url: "https://github.com/mbta/ueberauth_cognito"
+      source_url: "https://github.com/mbta/ueberauth_cognito",
+      docs: [
+        main: "readme",
+        extras: ["README.md"]
+      ]
     ]
   end
 
@@ -30,7 +34,8 @@ defmodule UeberauthCognito.MixProject do
       {:hackney, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:jose, "~> 1.0"},
-      {:ueberauth, "~> 0.6"}
+      {:ueberauth, "~> 0.6"},
+      {:ex_doc, "~> 0.18", only: :dev, runtime: false}
     ]
   end
 

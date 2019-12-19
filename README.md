@@ -13,8 +13,8 @@ Add `:ueberauth` and `:ueberauth_cognito` to your `mix.exs`:
 defp deps do
   [
     # ...
-    {:ueberauth, "~> 0.1"},
-    {:ueberauth_cognito, git: "https://github.com/mbta/ueberauth_cognito.git"}
+    {:ueberauth, "~> 0.6"},
+    {:ueberauth_cognito, "~> 0.1"}
   ]
 end
 ```
