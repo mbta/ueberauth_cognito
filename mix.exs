@@ -8,7 +8,11 @@ defmodule UeberauthCognito.MixProject do
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls]
+      test_coverage: [tool: ExCoveralls],
+      description: description(),
+      package: package(),
+      name: "Ueberauth AWS Cognito Strategy",
+      source_url: "https://github.com/mbta/ueberauth_cognito"
     ]
   end
 
@@ -27,6 +31,17 @@ defmodule UeberauthCognito.MixProject do
       {:jason, "~> 1.0"},
       {:jose, "~> 1.0"},
       {:ueberauth, "~> 0.6"}
+    ]
+  end
+
+  defp description do
+    "An Ueberauth strategy for integrating with AWS Cognito"
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/mbta/ueberauth_cognito"}
     ]
   end
 end
