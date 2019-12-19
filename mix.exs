@@ -46,7 +46,11 @@ defmodule UeberauthCognito.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/mbta/ueberauth_cognito"}
+      links: %{"GitHub" => "https://github.com/mbta/ueberauth_cognito"},
+      maintainers: [
+        "Gabe Durazo <gdurazo@mbta.com>",
+        "Eddie Maldonado <emaldonado@mbta.com>"
+      ]
     ]
   end
 end
