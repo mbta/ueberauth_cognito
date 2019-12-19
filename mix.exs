@@ -1,10 +1,13 @@
 defmodule UeberauthCognito.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @url "https://github.com/mbta/ueberauth_cognito"
+
   def project do
     [
       app: :ueberauth_cognito,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.6",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -12,7 +15,7 @@ defmodule UeberauthCognito.MixProject do
       description: description(),
       package: package(),
       name: "Ueberauth AWS Cognito Strategy",
-      source_url: "https://github.com/mbta/ueberauth_cognito",
+      source_url: @url,
       docs: [
         main: "readme",
         extras: ["README.md"]
@@ -46,7 +49,7 @@ defmodule UeberauthCognito.MixProject do
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/mbta/ueberauth_cognito"},
+      links: %{"GitHub" => @url},
       maintainers: [
         "Gabe Durazo <gdurazo@mbta.com>",
         "Eddie Maldonado <emaldonado@mbta.com>"
