@@ -6,7 +6,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifier do
   alias Ueberauth.Strategy.Cognito.Utilities
 
   @doc "Verifies that a JWT is valid: the signature is correct,
-  and the audience is the AWS client_id"
+  and the audience is the AWS `client_id`"
   def verify(jwt, jwks, config) do
     with {:ok, claims_json} <- verified_claims(jwks, jwt),
          {:ok, claims} <- Jason.decode(claims_json),

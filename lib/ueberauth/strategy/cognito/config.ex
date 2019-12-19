@@ -1,4 +1,6 @@
 defmodule Ueberauth.Strategy.Cognito.Config do
+  @moduledoc false
+
   @strategy_keys [
     :auth_domain,
     :client_id,
@@ -16,6 +18,7 @@ defmodule Ueberauth.Strategy.Cognito.Config do
 
   defstruct @enforce_keys
 
+  @doc false
   def get_config do
     config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
 
