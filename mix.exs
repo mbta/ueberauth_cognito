@@ -33,7 +33,7 @@ defmodule UeberauthCognito.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:excoveralls, "~> 0.9.0", only: :test},
+      {:excoveralls, "~> 0.12.3", only: :test},
       {:hackney, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:jose, "~> 1.0"},
