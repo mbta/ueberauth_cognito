@@ -25,7 +25,6 @@ defmodule Ueberauth.Strategy.CognitoTest do
         "id_token" => id_token,
         "refresh_token" => "a_refresh_token"
       }
-
       {:ok, Jason.encode!(token)}
     end
 
@@ -118,6 +117,31 @@ defmodule Ueberauth.Strategy.CognitoTest do
 
       assert String.starts_with?(redirect_location, "https://testdomain.com/oauth2/authorize")
       assert redirect_location =~ "client_id=the_client_id"
+    end
+
+    test "redirects with optional params" do
+      conn =
+        conn(:get,
+          "/auth/cognito",
+          %{
+            identity_provider: "idp",
+            idp_identifier: "idp-id",
+          }
+        )
+        |> init_test_session(%{})
+        |> Cognito.handle_request!()
+
+      assert conn.status == 302
+
+      {"location", redirect_location} =
+        Enum.find(conn.resp_headers, fn {header, _} -> header == "location" end)
+
+      assert String.starts_with?(redirect_location, "https://testdomain.com/oauth2/authorize")
+
+      url = URI.parse(redirect_location)
+      assert url.query =~ "client_id=the_client_id"
+      assert url.query =~ "identity_provider=idp"
+      assert url.query =~ "idp_identifier=idp-id"
     end
   end
 

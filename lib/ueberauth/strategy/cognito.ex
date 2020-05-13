@@ -25,6 +25,8 @@ defmodule Ueberauth.Strategy.Cognito do
   alias Ueberauth.Strategy.Cognito.Utilities
   alias Ueberauth.Strategy.Cognito.Config
 
+  @accepted_authorize_params [:identity_provider, :idp_identifier]
+
   @doc """
   Handle the request step of the strategy.
   """
@@ -36,14 +38,26 @@ defmodule Ueberauth.Strategy.Cognito do
       client_id: client_id
     } = Config.get_config(otp_app(conn))
 
-    params = %{
-      response_type: "code",
-      client_id: client_id,
-      redirect_uri: callback_url(conn),
-      state: state,
-      # TODO - make dynamic (accepting PRs!):
-      scope: "openid profile email"
-    }
+    optional_params = @accepted_authorize_params
+    |> Enum.flat_map(fn key ->
+      case Map.fetch(conn.params, Atom.to_string(key)) do
+        {:ok, value} -> [{key, value}]
+        _ -> []
+      end
+    end)
+    |> Map.new()
+
+    params = Map.merge(
+      optional_params,
+      %{
+        response_type: "code",
+        client_id: client_id,
+        redirect_uri: callback_url(conn),
+        state: state,
+        # TODO - make dynamic (accepting PRs!):
+        scope: "openid profile email"
+      }
+    )
 
     url = "https://#{auth_domain}/oauth2/authorize?" <> URI.encode_query(params)
 
