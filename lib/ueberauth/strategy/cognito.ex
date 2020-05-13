@@ -34,7 +34,7 @@ defmodule Ueberauth.Strategy.Cognito do
     %{
       auth_domain: auth_domain,
       client_id: client_id
-    } = Config.get_config()
+    } = Config.get_config(otp_app(conn))
 
     params = %{
       response_type: "code",
@@ -61,7 +61,7 @@ defmodule Ueberauth.Strategy.Cognito do
   given refresh token rather than the normal Cognito flow.
   """
   def handle_callback!(%Plug.Conn{params: %{"refresh_token" => refresh_token}} = conn) do
-    config = Config.get_config()
+    config = Config.get_config(otp_app(conn))
 
     with {:ok, token} <- request_token_refresh(refresh_token, config) do
       extract_and_verify_token(conn, token, config)
@@ -97,7 +97,7 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
-    config = Config.get_config()
+    config = Config.get_config(otp_app(conn))
 
     with {:ok, token} <- request_token(conn, code, config) do
       extract_and_verify_token(conn, token, config)
@@ -255,5 +255,14 @@ defmodule Ueberauth.Strategy.Cognito do
     conn
     |> put_private(:cognito_token, nil)
     |> put_private(:cognito_id_token, nil)
+  end
+
+  defp otp_app(conn) do
+    default_app = :ueberauth
+    if opts = options(conn) do
+      Keyword.get(opts, :otp_app, default_app)
+    else
+      default_app
+    end
   end
 end

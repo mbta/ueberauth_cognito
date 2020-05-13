@@ -72,6 +72,38 @@ end
 
 Note that the entry in the `router` defines the authentication callback URL, and will need to be whitelisted in the AWS Cognito User Pools settings.
 
+## Configuration of settings per OTP app
+
+If you wish to use Ueberauth in multiple OTP apps, and configure each instance of Ueberauth with a different list of Providers and settings, you will need to do some things differently. When providing configuration for Ueberauth, you should set anything that differs by OTP app under the name of your OTP app, for example:
+
+```ex
+config :my_app, Ueberauth,
+  providers: [
+    cognito: {Ueberauth.Strategy.Cognito, []}
+  ]
+```
+
+and configure the required values for the provider (make sure to use the same otp_app name)
+
+```ex
+config :my_app, Ueberauth.Strategy.Cognito,
+  auth_domain: {System, :get_env, ["COGNITO_DOMAIN"]},
+  client_id: {System, :get_env, ["COGNITO_CLIENT_ID"]},
+  client_secret: {System, :get_env, ["COGNITO_CLIENT_SECRET"]},
+  user_pool_id: {System, :get_env, ["COGNITO_USER_POOL_ID"]},
+  aws_region: {System, :get_env, ["COGNITO_AWS_REGION"]} # e.g. "us-east-1"
+```
+
+In your controller, when using the Ueberauth plug, you should pass the `:otp_app` option, for example:
+
+```ex
+defmodule SignsUiWeb.AuthController do
+  use SignsUiWeb, :controller
+  plug(Ueberauth, otp_app: :my_app)
+
+  ...
+```
+
 ## Refreshing access tokens
 
 Cognito supports [using refresh tokens](https://www.oauth.com/oauth2-servers/access-tokens/refreshing-access-tokens/) to automatically obtain new access tokens for users whose access tokens expire. If your application has a refresh token handy, you can redirect to the callback URL with the `refresh_token` param set, and Ueberauth will attempt to use the given refresh token value to obtain a fresh access token.

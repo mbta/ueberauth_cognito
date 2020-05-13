@@ -19,8 +19,8 @@ defmodule Ueberauth.Strategy.Cognito.Config do
   defstruct @enforce_keys
 
   @doc false
-  def get_config do
-    config = Application.get_env(:ueberauth, Ueberauth.Strategy.Cognito) || %{}
+  def get_config(otp_app) do
+    config = Application.get_env(otp_app || :ueberauth, Ueberauth.Strategy.Cognito) || %{}
 
     strategy_config =
       Map.new(@strategy_keys, fn c ->
