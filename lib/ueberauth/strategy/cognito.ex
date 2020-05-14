@@ -246,10 +246,22 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   @doc """
-  Currently doesn't return any additional information.
+  Fetches the fields to populate the info section of the `Ueberauth.Auth` struct.
   """
-  def info(_conn) do
-    %Ueberauth.Auth.Info{}
+  def info(conn) do
+    id_token = conn.private[:cognito_id_token]
+    %Ueberauth.Auth.Info{
+      email:       id_token["email"],
+      name:        id_token["cognito:username"],
+      first_name:  id_token["given_name"],
+      last_name:   id_token["family_name"],
+      nickname:    id_token["nickname"],
+      location:    id_token["address"],
+      description: id_token["description"],
+      image:       id_token["picture"],
+      phone:       id_token["phone_number"],
+      birthday:    id_token["birthdate"],
+    }
   end
 
   @doc """
