@@ -22,7 +22,8 @@ defmodule Ueberauth.Strategy.Cognito do
   """
 
   use Ueberauth.Strategy,
-    uid_field: "cognito:username"
+    uid_field: "cognito:username",
+    name_field: "name"
 
   alias Ueberauth.Strategy.Cognito.Utilities
   alias Ueberauth.Strategy.Cognito.Config
@@ -254,7 +255,7 @@ defmodule Ueberauth.Strategy.Cognito do
     id_token = conn.private[:cognito_id_token]
     %Ueberauth.Auth.Info{
       email:       id_token["email"],
-      name:        id_token["cognito:username"],
+      name:        id_token[option(conn, :name_field)],
       first_name:  id_token["given_name"],
       last_name:   id_token["family_name"],
       nickname:    id_token["nickname"],

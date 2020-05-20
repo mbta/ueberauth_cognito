@@ -525,6 +525,32 @@ defmodule Ueberauth.Strategy.CognitoTest do
 
       assert %Ueberauth.Auth.Info{} == Cognito.info(conn)
     end
+
+    test "different configurations can be used by setting otp_app" do
+      # set an environment with a custom app name
+      Application.put_env(
+        :custom_app,
+        Ueberauth.Strategy.Cognito,
+        %{
+          auth_domain: "customdomain.com",
+          client_id: "custom_client_id",
+          client_secret: {Ueberauth.Strategy.CognitoTest.Identity, :id, ["custom_client_secret"]},
+          user_pool_id: "custom_user_pool_id",
+          aws_region: "us-east-2",
+          name_field: "cognito:username"
+        }
+      )
+
+      conn =
+        conn(:get, "/auth/cognito")
+        |> put_private(:ueberauth_request_options, options: [otp_app: :custom_app])
+        |> put_private(:cognito_id_token, %{"cognito:username" => "Cognito UserName"})
+
+      assert %{ name: "Cognito UserName" } = Cognito.info(conn)
+
+      # clean up
+      Application.delete_env(:custom_app, Ueberauth.Strategy.Cognito)
+    end
   end
 
   test "extra/1" do
