@@ -409,12 +409,40 @@ defmodule Ueberauth.Strategy.CognitoTest do
     end
   end
 
-  test "uid/1" do
-    conn =
-      conn(:get, "/auth/cognito/callback")
-      |> put_private(:cognito_id_token, %{"cognito:username" => "username"})
+  describe "uid/1" do
+    test "default uid_field" do
+      conn =
+        conn(:get, "/auth/cognito/callback")
+        |> put_private(:cognito_id_token, %{"cognito:username" => "username"})
 
-    assert Cognito.uid(conn) == "username"
+      assert Cognito.uid(conn) == "username"
+    end
+
+    test "different configurations can be used by setting otp_app" do
+      # set an environment with a custom app name
+      Application.put_env(
+        :custom_app,
+        Ueberauth.Strategy.Cognito,
+        %{
+          auth_domain: "customdomain.com",
+          client_id: "custom_client_id",
+          client_secret: {Ueberauth.Strategy.CognitoTest.Identity, :id, ["custom_client_secret"]},
+          user_pool_id: "custom_user_pool_id",
+          aws_region: "us-east-2",
+          uid_field: "sub"
+        }
+      )
+
+      conn =
+        conn(:get, "/auth/cognito")
+        |> put_private(:ueberauth_request_options, options: [otp_app: :custom_app])
+        |> put_private(:cognito_id_token, %{"sub" => "sub_id"})
+
+      assert Cognito.uid(conn) == "sub_id"
+
+      # clean up
+      Application.delete_env(:custom_app, Ueberauth.Strategy.Cognito)
+    end
   end
 
   test "credentials/1" do

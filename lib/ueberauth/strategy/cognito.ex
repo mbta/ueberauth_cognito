@@ -21,7 +21,9 @@ defmodule Ueberauth.Strategy.Cognito do
   shouldn't have to concern themselves with them.
   """
 
-  use Ueberauth.Strategy
+  use Ueberauth.Strategy,
+    uid_field: "cognito:username"
+
   alias Ueberauth.Strategy.Cognito.Utilities
   alias Ueberauth.Strategy.Cognito.Config
 
@@ -242,7 +244,7 @@ defmodule Ueberauth.Strategy.Cognito do
   Returns the username given in the Cognito response.
   """
   def uid(conn) do
-    conn.private.cognito_id_token["cognito:username"]
+    conn.private.cognito_id_token[option(conn, :uid_field)]
   end
 
   @doc """
@@ -290,5 +292,9 @@ defmodule Ueberauth.Strategy.Cognito do
     else
       default_app
     end
+  end
+
+  defp option(conn, key) do
+    Map.get(Config.get_config(otp_app(conn)),key) || Keyword.get(default_options(), key)
   end
 end
