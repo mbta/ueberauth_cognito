@@ -14,9 +14,14 @@ defmodule Ueberauth.Strategy.Cognito.Config do
     :jwt_verifier
   ]
 
+  @optional_keys [
+    :uid_field,
+    :name_field
+  ]
+
   @enforce_keys @strategy_keys ++ @dependency_keys
 
-  defstruct @enforce_keys
+  defstruct @enforce_keys ++ @optional_keys
 
   @doc false
   def get_config(otp_app) do
@@ -37,7 +42,14 @@ defmodule Ueberauth.Strategy.Cognito.Config do
         )
     }
 
-    overall_config = Map.merge(strategy_config, dependency_config)
+    optional_config =
+      Map.new(@optional_keys, fn c ->
+        {c, config_value(config[c])}
+      end)
+
+    overall_config = optional_config
+    |> Map.merge(strategy_config)
+    |> Map.merge(dependency_config)
 
     struct(
       __MODULE__,
@@ -45,6 +57,6 @@ defmodule Ueberauth.Strategy.Cognito.Config do
     )
   end
 
-  defp config_value(value) when is_binary(value), do: value
+  defp config_value(value) when is_binary(value) or is_nil(value), do: value
   defp config_value({m, f, a}), do: apply(m, f, a)
 end

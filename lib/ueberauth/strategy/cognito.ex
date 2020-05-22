@@ -21,9 +21,14 @@ defmodule Ueberauth.Strategy.Cognito do
   shouldn't have to concern themselves with them.
   """
 
-  use Ueberauth.Strategy
+  use Ueberauth.Strategy,
+    uid_field: "cognito:username",
+    name_field: "name"
+
   alias Ueberauth.Strategy.Cognito.Utilities
   alias Ueberauth.Strategy.Cognito.Config
+
+  @accepted_authorize_params [:identity_provider, :idp_identifier]
 
   @doc """
   Handle the request step of the strategy.
@@ -36,14 +41,26 @@ defmodule Ueberauth.Strategy.Cognito do
       client_id: client_id
     } = Config.get_config(otp_app(conn))
 
-    params = %{
-      response_type: "code",
-      client_id: client_id,
-      redirect_uri: callback_url(conn),
-      state: state,
-      # TODO - make dynamic (accepting PRs!):
-      scope: "openid profile email"
-    }
+    optional_params = @accepted_authorize_params
+    |> Enum.flat_map(fn key ->
+      case Map.fetch(conn.params, Atom.to_string(key)) do
+        {:ok, value} -> [{key, value}]
+        _ -> []
+      end
+    end)
+    |> Map.new()
+
+    params = Map.merge(
+      optional_params,
+      %{
+        response_type: "code",
+        client_id: client_id,
+        redirect_uri: callback_url(conn),
+        state: state,
+        # TODO - make dynamic (accepting PRs!):
+        scope: "openid profile email"
+      }
+    )
 
     url = "https://#{auth_domain}/oauth2/authorize?" <> URI.encode_query(params)
 
@@ -228,14 +245,26 @@ defmodule Ueberauth.Strategy.Cognito do
   Returns the username given in the Cognito response.
   """
   def uid(conn) do
-    conn.private.cognito_id_token["cognito:username"]
+    conn.private.cognito_id_token[option(conn, :uid_field)]
   end
 
   @doc """
-  Currently doesn't return any additional information.
+  Fetches the fields to populate the info section of the `Ueberauth.Auth` struct.
   """
-  def info(_conn) do
-    %Ueberauth.Auth.Info{}
+  def info(conn) do
+    id_token = conn.private[:cognito_id_token]
+    %Ueberauth.Auth.Info{
+      email:       id_token["email"],
+      name:        id_token[option(conn, :name_field)],
+      first_name:  id_token["given_name"],
+      last_name:   id_token["family_name"],
+      nickname:    id_token["nickname"],
+      location:    id_token["address"],
+      description: id_token["description"],
+      image:       id_token["picture"],
+      phone:       id_token["phone_number"],
+      birthday:    id_token["birthdate"],
+    }
   end
 
   @doc """
@@ -264,5 +293,9 @@ defmodule Ueberauth.Strategy.Cognito do
     else
       default_app
     end
+  end
+
+  defp option(conn, key) do
+    Map.get(Config.get_config(otp_app(conn)),key) || Keyword.get(default_options(), key)
   end
 end
