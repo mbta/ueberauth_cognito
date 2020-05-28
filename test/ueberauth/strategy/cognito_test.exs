@@ -41,7 +41,6 @@ defmodule Ueberauth.Strategy.CognitoTest do
           "nickname" => "Nickname",
           "given_name" => "Given",
           "family_name" => "Family",
-          "family_name" => "Family",
           "address" => "Japan",
           "picture" => "https://example.com/img",
           "phone_number" => "1234567890",
