@@ -14,7 +14,7 @@ defp deps do
   [
     # ...
     {:ueberauth, "~> 0.6"},
-    {:ueberauth_cognito, "~> 0.1"}
+    {:ueberauth_cognito, "~> 0.2"}
   ]
 end
 ```
