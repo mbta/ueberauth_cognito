@@ -174,6 +174,33 @@ defmodule Ueberauth.Strategy.CognitoTest do
       assert url.query =~ "identity_provider=idp"
       assert url.query =~ "idp_identifier=idp-id"
     end
+
+    test "redirect without client_secret" do
+      # set an environment with a custom app name
+      Application.put_env(:no_client_secret, Ueberauth.Strategy.Cognito, %{
+        auth_domain: "testdomain.com",
+        client_id: "the_client_id",
+        user_pool_id: "the_user_pool_id",
+        aws_region: "us-east-1"
+      })
+
+      conn =
+        conn(:get, "/auth/cognito")
+        |> put_private(:ueberauth_request_options, options: [otp_app: :no_client_secret])
+        |> init_test_session(%{})
+        |> Cognito.handle_request!()
+
+      assert conn.status == 302
+
+      {"location", redirect_location} =
+        Enum.find(conn.resp_headers, fn {header, _} -> header == "location" end)
+
+      assert String.starts_with?(redirect_location, "https://testdomain.com/oauth2/authorize")
+      assert redirect_location =~ "client_id=the_client_id"
+
+      # clean up
+      Application.delete_env(:no_client_secret, Ueberauth.Strategy.Cognito)
+    end
   end
 
   describe "handle_callback! with refresh token" do
