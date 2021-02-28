@@ -201,7 +201,6 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp post_to_token_endpoint(params, config) do
-  defp post_to_token_endpoint(params, config) do
     headers = [
       {"content-type", "application/x-www-form-urlencoded"}
     ]
