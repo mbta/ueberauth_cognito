@@ -34,8 +34,6 @@ defmodule Ueberauth.Strategy.Cognito do
   Handle the request step of the strategy.
   """
   def handle_request!(conn) do
-    state = :crypto.strong_rand_bytes(32) |> Base.encode16()
-
     %{
       auth_domain: auth_domain,
       client_id: client_id
@@ -49,28 +47,22 @@ defmodule Ueberauth.Strategy.Cognito do
           _ -> []
         end
       end)
-      |> Map.new()
 
     params =
-      Map.merge(
+      Keyword.merge(
         optional_params,
-        %{
-          response_type: "code",
-          client_id: client_id,
-          redirect_uri: callback_url(conn),
-          state: state,
-          # TODO - make dynamic (accepting PRs!):
-          scope: "openid profile email"
-        }
+        response_type: "code",
+        client_id: client_id,
+        redirect_uri: callback_url(conn),
+        # TODO - make dynamic (accepting PRs!):
+        scope: "openid profile email"
       )
+      |> with_state_param(conn)
 
     url = "https://#{auth_domain}/oauth2/authorize?" <> URI.encode_query(params)
 
     conn
-    |> fetch_session()
-    |> put_session("cognito_state", state)
     |> redirect!(url)
-    |> halt()
   end
 
   @doc """
@@ -93,26 +85,10 @@ defmodule Ueberauth.Strategy.Cognito do
     end
   end
 
-  def handle_callback!(%Plug.Conn{params: %{"state" => state}} = conn) do
-    expected_state =
-      conn
-      |> fetch_session()
-      |> get_session("cognito_state")
-
-    conn =
-      if state == expected_state do
-        exchange_code_for_token(conn)
-      else
-        set_errors!(conn, error("bad_state", "State parameter doesn't match"))
-      end
-
+  def handle_callback!(%Plug.Conn{} = conn) do
     conn
     |> fetch_session()
-    |> delete_session("cognito_state")
-  end
-
-  def handle_callback!(conn) do
-    set_errors!(conn, error("no_state", "Missing state param"))
+    |> exchange_code_for_token()
   end
 
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do

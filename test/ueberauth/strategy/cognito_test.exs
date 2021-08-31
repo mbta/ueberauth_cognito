@@ -271,8 +271,6 @@ defmodule Ueberauth.Strategy.CognitoTest do
       conn =
         conn(:get, "/auth/cognito/callback?state=123&code=abc")
         |> init_test_session(%{})
-        |> fetch_session()
-        |> put_session("cognito_state", "123")
         |> Plug.Conn.fetch_query_params()
         |> Cognito.handle_callback!()
 
@@ -286,52 +284,10 @@ defmodule Ueberauth.Strategy.CognitoTest do
              }
     end
 
-    test "returns error if state param is not the expected one" do
-      conn =
-        conn(:get, "/auth/cognito/callback?state=123&code=abc")
-        |> init_test_session(%{})
-        |> fetch_session()
-        |> put_session("cognito_state", "345")
-        |> Plug.Conn.fetch_query_params()
-        |> Cognito.handle_callback!()
-
-      assert %{
-               ueberauth_failure: %Ueberauth.Failure{
-                 errors: [
-                   %Ueberauth.Failure.Error{
-                     message_key: "bad_state"
-                   }
-                 ]
-               }
-             } = conn.assigns
-    end
-
-    test "returns error if state param is missing" do
-      conn =
-        conn(:get, "/auth/cognito/callback?code=abc")
-        |> init_test_session(%{})
-        |> fetch_session()
-        |> put_session("cognito_state", "345")
-        |> Plug.Conn.fetch_query_params()
-        |> Cognito.handle_callback!()
-
-      assert %{
-               ueberauth_failure: %Ueberauth.Failure{
-                 errors: [
-                   %Ueberauth.Failure.Error{
-                     message_key: "no_state"
-                   }
-                 ]
-               }
-             } = conn.assigns
-    end
-
     test "returns error if no code provided" do
       conn =
         conn(:get, "/auth/cognito/callback?state=123")
         |> init_test_session(%{})
-        |> fetch_session()
-        |> put_session("cognito_state", "123")
         |> Plug.Conn.fetch_query_params()
         |> Cognito.handle_callback!()
 
@@ -352,8 +308,6 @@ defmodule Ueberauth.Strategy.CognitoTest do
       conn =
         conn(:get, "/auth/cognito/callback?state=123&code=abc")
         |> init_test_session(%{})
-        |> fetch_session()
-        |> put_session("cognito_state", "123")
         |> Plug.Conn.fetch_query_params()
         |> Cognito.handle_callback!()
 
@@ -374,8 +328,6 @@ defmodule Ueberauth.Strategy.CognitoTest do
       conn =
         conn(:get, "/auth/cognito/callback?state=123&code=abc")
         |> init_test_session(%{})
-        |> fetch_session()
-        |> put_session("cognito_state", "123")
         |> Plug.Conn.fetch_query_params()
         |> Cognito.handle_callback!()
 
@@ -397,8 +349,6 @@ defmodule Ueberauth.Strategy.CognitoTest do
       conn =
         conn(:get, "/auth/cognito/callback?state=123&code=abc")
         |> init_test_session(%{})
-        |> fetch_session()
-        |> put_session("cognito_state", "123")
         |> Plug.Conn.fetch_query_params()
         |> Cognito.handle_callback!()
 
