@@ -68,7 +68,7 @@ defmodule Ueberauth.Strategy.Cognito.JwtVerifierTest do
     user_pool_id: "user_pool_id",
     aws_region: "aws_region",
     http_client: :hackney,
-    jwt_verifier: Ueberauth.Strategy.Cognito.JwtVerifier,
+    jwt_verifier: Ueberauth.Strategy.Cognito.JwtVerifier
   }
 
   describe "verify/3" do

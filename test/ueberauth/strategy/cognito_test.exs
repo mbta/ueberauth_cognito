@@ -19,11 +19,11 @@ defmodule Ueberauth.Strategy.CognitoTest do
           "email_verified" => false,
           "at_hash" => "hash",
           "aud" => "3rgcfma9qb6ol300sbo3e37a29",
-          "auth_time" => 1589385933,
+          "auth_time" => 1_589_385_933,
           "cognito:groups" => ["ap-northeast-1_xxxx"],
           "cognito:username" => "UserName",
-          "exp" => 1589389533,
-          "iat" => 1589385933,
+          "exp" => 1_589_389_533,
+          "iat" => 1_589_385_933,
           "identities" => [
             %{
               "dateCreated" => "1589384379675",
@@ -44,7 +44,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
           "address" => "Japan",
           "picture" => "https://example.com/img",
           "phone_number" => "1234567890",
-          "birthdate" => "2020-05-15",
+          "birthdate" => "2020-05-15"
         }
         |> Jason.encode!()
         |> Base.url_encode64(padding: false)
@@ -56,6 +56,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
         "id_token" => id_token,
         "refresh_token" => "a_refresh_token"
       }
+
       {:ok, Jason.encode!(token)}
     end
 
@@ -152,11 +153,12 @@ defmodule Ueberauth.Strategy.CognitoTest do
 
     test "redirects with optional params" do
       conn =
-        conn(:get,
+        conn(
+          :get,
           "/auth/cognito",
           %{
             identity_provider: "idp",
-            idp_identifier: "idp-id",
+            idp_identifier: "idp-id"
           }
         )
         |> init_test_session(%{})
@@ -188,9 +190,11 @@ defmodule Ueberauth.Strategy.CognitoTest do
         |> Cognito.handle_callback!()
 
       assert %{"email" => "foo"} = conn.private.cognito_id_token
+
       assert conn.private.cognito_token == %{
                "access_token" => "the_access_token",
-               "id_token" => "header.eyJhZGRyZXNzIjoiSmFwYW4iLCJhdF9oYXNoIjoiaGFzaCIsImF1ZCI6IjNyZ2NmbWE5cWI2b2wzMDBzYm8zZTM3YTI5IiwiYXV0aF90aW1lIjoxNTg5Mzg1OTMzLCJiaXJ0aGRhdGUiOiIyMDIwLTA1LTE1IiwiY29nbml0bzpncm91cHMiOlsiYXAtbm9ydGhlYXN0LTFfeHh4eCJdLCJjb2duaXRvOnVzZXJuYW1lIjoiVXNlck5hbWUiLCJlbWFpbCI6ImZvbyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXhwIjoxNTg5Mzg5NTMzLCJmYW1pbHlfbmFtZSI6IkZhbWlseSIsImdpdmVuX25hbWUiOiJHaXZlbiIsImlhdCI6MTU4OTM4NTkzMywiaWRlbnRpdGllcyI6W3siZGF0ZUNyZWF0ZWQiOiIxNTg5Mzg0Mzc5Njc1IiwiaXNzdWVyIjoidXJuOnh4eHguY29tIiwicHJpbWFyeSI6InRydWUiLCJwcm92aWRlck5hbWUiOiJpZHAtbmFtZSIsInByb3ZpZGVyVHlwZSI6IlNBTUwiLCJ1c2VySWQiOiJ1c2VyLWlkIn1dLCJpc3MiOiJodHRwczovL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb20vYXAtbm9ydGhlYXN0LTFfeHh4eCIsIm5hbWUiOiJVc2VyTmFtZSIsIm5pY2tuYW1lIjoiTmlja25hbWUiLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwicGljdHVyZSI6Imh0dHBzOi8vZXhhbXBsZS5jb20vaW1nIiwic3ViIjoieHh4eCIsInRva2VuX3VzZSI6ImlkIn0.signature",
+               "id_token" =>
+                 "header.eyJhZGRyZXNzIjoiSmFwYW4iLCJhdF9oYXNoIjoiaGFzaCIsImF1ZCI6IjNyZ2NmbWE5cWI2b2wzMDBzYm8zZTM3YTI5IiwiYXV0aF90aW1lIjoxNTg5Mzg1OTMzLCJiaXJ0aGRhdGUiOiIyMDIwLTA1LTE1IiwiY29nbml0bzpncm91cHMiOlsiYXAtbm9ydGhlYXN0LTFfeHh4eCJdLCJjb2duaXRvOnVzZXJuYW1lIjoiVXNlck5hbWUiLCJlbWFpbCI6ImZvbyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXhwIjoxNTg5Mzg5NTMzLCJmYW1pbHlfbmFtZSI6IkZhbWlseSIsImdpdmVuX25hbWUiOiJHaXZlbiIsImlhdCI6MTU4OTM4NTkzMywiaWRlbnRpdGllcyI6W3siZGF0ZUNyZWF0ZWQiOiIxNTg5Mzg0Mzc5Njc1IiwiaXNzdWVyIjoidXJuOnh4eHguY29tIiwicHJpbWFyeSI6InRydWUiLCJwcm92aWRlck5hbWUiOiJpZHAtbmFtZSIsInByb3ZpZGVyVHlwZSI6IlNBTUwiLCJ1c2VySWQiOiJ1c2VyLWlkIn1dLCJpc3MiOiJodHRwczovL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb20vYXAtbm9ydGhlYXN0LTFfeHh4eCIsIm5hbWUiOiJVc2VyTmFtZSIsIm5pY2tuYW1lIjoiTmlja25hbWUiLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwicGljdHVyZSI6Imh0dHBzOi8vZXhhbXBsZS5jb20vaW1nIiwic3ViIjoieHh4eCIsInRva2VuX3VzZSI6ImlkIn0.signature",
                "refresh_token" => "a_refresh_token"
              }
     end
@@ -273,9 +277,11 @@ defmodule Ueberauth.Strategy.CognitoTest do
         |> Cognito.handle_callback!()
 
       assert %{"email" => "foo"} = conn.private.cognito_id_token
+
       assert conn.private.cognito_token == %{
                "access_token" => "the_access_token",
-               "id_token" => "header.eyJhZGRyZXNzIjoiSmFwYW4iLCJhdF9oYXNoIjoiaGFzaCIsImF1ZCI6IjNyZ2NmbWE5cWI2b2wzMDBzYm8zZTM3YTI5IiwiYXV0aF90aW1lIjoxNTg5Mzg1OTMzLCJiaXJ0aGRhdGUiOiIyMDIwLTA1LTE1IiwiY29nbml0bzpncm91cHMiOlsiYXAtbm9ydGhlYXN0LTFfeHh4eCJdLCJjb2duaXRvOnVzZXJuYW1lIjoiVXNlck5hbWUiLCJlbWFpbCI6ImZvbyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXhwIjoxNTg5Mzg5NTMzLCJmYW1pbHlfbmFtZSI6IkZhbWlseSIsImdpdmVuX25hbWUiOiJHaXZlbiIsImlhdCI6MTU4OTM4NTkzMywiaWRlbnRpdGllcyI6W3siZGF0ZUNyZWF0ZWQiOiIxNTg5Mzg0Mzc5Njc1IiwiaXNzdWVyIjoidXJuOnh4eHguY29tIiwicHJpbWFyeSI6InRydWUiLCJwcm92aWRlck5hbWUiOiJpZHAtbmFtZSIsInByb3ZpZGVyVHlwZSI6IlNBTUwiLCJ1c2VySWQiOiJ1c2VyLWlkIn1dLCJpc3MiOiJodHRwczovL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb20vYXAtbm9ydGhlYXN0LTFfeHh4eCIsIm5hbWUiOiJVc2VyTmFtZSIsIm5pY2tuYW1lIjoiTmlja25hbWUiLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwicGljdHVyZSI6Imh0dHBzOi8vZXhhbXBsZS5jb20vaW1nIiwic3ViIjoieHh4eCIsInRva2VuX3VzZSI6ImlkIn0.signature",
+               "id_token" =>
+                 "header.eyJhZGRyZXNzIjoiSmFwYW4iLCJhdF9oYXNoIjoiaGFzaCIsImF1ZCI6IjNyZ2NmbWE5cWI2b2wzMDBzYm8zZTM3YTI5IiwiYXV0aF90aW1lIjoxNTg5Mzg1OTMzLCJiaXJ0aGRhdGUiOiIyMDIwLTA1LTE1IiwiY29nbml0bzpncm91cHMiOlsiYXAtbm9ydGhlYXN0LTFfeHh4eCJdLCJjb2duaXRvOnVzZXJuYW1lIjoiVXNlck5hbWUiLCJlbWFpbCI6ImZvbyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXhwIjoxNTg5Mzg5NTMzLCJmYW1pbHlfbmFtZSI6IkZhbWlseSIsImdpdmVuX25hbWUiOiJHaXZlbiIsImlhdCI6MTU4OTM4NTkzMywiaWRlbnRpdGllcyI6W3siZGF0ZUNyZWF0ZWQiOiIxNTg5Mzg0Mzc5Njc1IiwiaXNzdWVyIjoidXJuOnh4eHguY29tIiwicHJpbWFyeSI6InRydWUiLCJwcm92aWRlck5hbWUiOiJpZHAtbmFtZSIsInByb3ZpZGVyVHlwZSI6IlNBTUwiLCJ1c2VySWQiOiJ1c2VyLWlkIn1dLCJpc3MiOiJodHRwczovL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb20vYXAtbm9ydGhlYXN0LTFfeHh4eCIsIm5hbWUiOiJVc2VyTmFtZSIsIm5pY2tuYW1lIjoiTmlja25hbWUiLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwicGljdHVyZSI6Imh0dHBzOi8vZXhhbXBsZS5jb20vaW1nIiwic3ViIjoieHh4eCIsInRva2VuX3VzZSI6ImlkIn0.signature",
                "refresh_token" => "a_refresh_token"
              }
     end
@@ -492,35 +498,37 @@ defmodule Ueberauth.Strategy.CognitoTest do
     test "with refresh_token" do
       Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneySuccess)
 
-      conn = conn(:get, "/auth/cognito/callback?refresh_token=abc")
-      |> init_test_session(%{})
-      |> fetch_session()
-      |> Plug.Conn.fetch_query_params()
-      |> Cognito.handle_callback!()
+      conn =
+        conn(:get, "/auth/cognito/callback?refresh_token=abc")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
 
       assert %Ueberauth.Auth.Info{
-          email: "foo",
-          name: "UserName",
-          first_name: "Given",
-          last_name: "Family",
-          nickname: "Nickname",
-          location: "Japan",
-          description: nil,
-          image: "https://example.com/img",
-          phone: "1234567890",
-          birthday: "2020-05-15",
-          urls: %{},
-      } == Cognito.info(conn)
+               email: "foo",
+               name: "UserName",
+               first_name: "Given",
+               last_name: "Family",
+               nickname: "Nickname",
+               location: "Japan",
+               description: nil,
+               image: "https://example.com/img",
+               phone: "1234567890",
+               birthday: "2020-05-15",
+               urls: %{}
+             } == Cognito.info(conn)
     end
 
     test "without refresh_token" do
       Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneySuccess)
 
-      conn = conn(:get, "/auth/cognito/callback")
-      |> init_test_session(%{})
-      |> fetch_session()
-      |> Plug.Conn.fetch_query_params()
-      |> Cognito.handle_callback!()
+      conn =
+        conn(:get, "/auth/cognito/callback")
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
 
       assert %Ueberauth.Auth.Info{} == Cognito.info(conn)
     end
@@ -545,7 +553,7 @@ defmodule Ueberauth.Strategy.CognitoTest do
         |> put_private(:ueberauth_request_options, options: [otp_app: :custom_app])
         |> put_private(:cognito_id_token, %{"cognito:username" => "Cognito UserName"})
 
-      assert %{ name: "Cognito UserName" } = Cognito.info(conn)
+      assert %{name: "Cognito UserName"} = Cognito.info(conn)
 
       # clean up
       Application.delete_env(:custom_app, Ueberauth.Strategy.Cognito)
