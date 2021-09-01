@@ -12,8 +12,8 @@ Add `:ueberauth` and `:ueberauth_cognito` to your `mix.exs`:
 defp deps do
   [
     # ...
-    {:ueberauth, "~> 0.6"},
-    {:ueberauth_cognito, "~> 0.2"}
+    {:ueberauth, "~> 0.7"},
+    {:ueberauth_cognito, "~> 0.3"}
   ]
 end
 ```
