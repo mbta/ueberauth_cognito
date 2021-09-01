@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+* BREAKING: minimum ueberauth version is now 0.7
+* Standardize handling of CSRF Attack protection
+
 ## 0.2.0
 
 * BREAKING: minimum Elixir version is now 1.7

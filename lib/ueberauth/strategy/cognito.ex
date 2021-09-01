@@ -34,41 +34,35 @@ defmodule Ueberauth.Strategy.Cognito do
   Handle the request step of the strategy.
   """
   def handle_request!(conn) do
-    state = :crypto.strong_rand_bytes(32) |> Base.encode16()
-
     %{
       auth_domain: auth_domain,
       client_id: client_id
     } = Config.get_config(otp_app(conn))
 
-    optional_params = @accepted_authorize_params
-    |> Enum.flat_map(fn key ->
-      case Map.fetch(conn.params, Atom.to_string(key)) do
-        {:ok, value} -> [{key, value}]
-        _ -> []
-      end
-    end)
-    |> Map.new()
+    optional_params =
+      @accepted_authorize_params
+      |> Enum.flat_map(fn key ->
+        case Map.fetch(conn.params, Atom.to_string(key)) do
+          {:ok, value} -> [{key, value}]
+          _ -> []
+        end
+      end)
 
-    params = Map.merge(
-      optional_params,
-      %{
+    params =
+      Keyword.merge(
+        optional_params,
         response_type: "code",
         client_id: client_id,
         redirect_uri: callback_url(conn),
-        state: state,
         # TODO - make dynamic (accepting PRs!):
         scope: "openid profile email"
-      }
-    )
+      )
+      |> with_state_param(conn)
 
     url = "https://#{auth_domain}/oauth2/authorize?" <> URI.encode_query(params)
 
     conn
-    |> fetch_session()
-    |> put_session("cognito_state", state)
     |> redirect!(url)
-    |> halt()
   end
 
   @doc """
@@ -91,26 +85,10 @@ defmodule Ueberauth.Strategy.Cognito do
     end
   end
 
-  def handle_callback!(%Plug.Conn{params: %{"state" => state}} = conn) do
-    expected_state =
-      conn
-      |> fetch_session()
-      |> get_session("cognito_state")
-
-    conn =
-      if state == expected_state do
-        exchange_code_for_token(conn)
-      else
-        set_errors!(conn, error("bad_state", "State parameter doesn't match"))
-      end
-
+  def handle_callback!(%Plug.Conn{} = conn) do
     conn
     |> fetch_session()
-    |> delete_session("cognito_state")
-  end
-
-  def handle_callback!(conn) do
-    set_errors!(conn, error("no_state", "Missing state param"))
+    |> exchange_code_for_token()
   end
 
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
@@ -253,17 +231,18 @@ defmodule Ueberauth.Strategy.Cognito do
   """
   def info(conn) do
     id_token = conn.private[:cognito_id_token]
+
     %Ueberauth.Auth.Info{
-      email:       id_token["email"],
-      name:        id_token[option(conn, :name_field)],
-      first_name:  id_token["given_name"],
-      last_name:   id_token["family_name"],
-      nickname:    id_token["nickname"],
-      location:    id_token["address"],
+      email: id_token["email"],
+      name: id_token[option(conn, :name_field)],
+      first_name: id_token["given_name"],
+      last_name: id_token["family_name"],
+      nickname: id_token["nickname"],
+      location: id_token["address"],
       description: id_token["description"],
-      image:       id_token["picture"],
-      phone:       id_token["phone_number"],
-      birthday:    id_token["birthdate"],
+      image: id_token["picture"],
+      phone: id_token["phone_number"],
+      birthday: id_token["birthdate"]
     }
   end
 
@@ -288,6 +267,7 @@ defmodule Ueberauth.Strategy.Cognito do
 
   defp otp_app(conn) do
     default_app = :ueberauth
+
     if opts = options(conn) do
       Keyword.get(opts, :otp_app, default_app)
     else
@@ -296,6 +276,6 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp option(conn, key) do
-    Map.get(Config.get_config(otp_app(conn)),key) || Keyword.get(default_options(), key)
+    Map.get(Config.get_config(otp_app(conn)), key) || Keyword.get(default_options(), key)
   end
 end

@@ -47,9 +47,10 @@ defmodule Ueberauth.Strategy.Cognito.Config do
         {c, config_value(config[c])}
       end)
 
-    overall_config = optional_config
-    |> Map.merge(strategy_config)
-    |> Map.merge(dependency_config)
+    overall_config =
+      optional_config
+      |> Map.merge(strategy_config)
+      |> Map.merge(dependency_config)
 
     struct(
       __MODULE__,

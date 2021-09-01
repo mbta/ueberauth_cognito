@@ -1,7 +1,7 @@
 defmodule UeberauthCognito.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.3.0"
   @url "https://github.com/mbta/ueberauth_cognito"
 
   def project do
@@ -37,7 +37,7 @@ defmodule UeberauthCognito.MixProject do
       {:hackney, "~> 1.0"},
       {:jason, "~> 1.0"},
       {:jose, "~> 1.0"},
-      {:ueberauth, "~> 0.6"},
+      {:ueberauth, "~> 0.7"},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false}
     ]
   end
