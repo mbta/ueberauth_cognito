@@ -1,14 +1,14 @@
-# UeberauthCognito
+# Ueberauth Cognito
 
 [![Build Status](https://github.com/mbta/ueberauth_cognito/actions/workflows/elixir.yml/badge.svg?branch=master)](https://github.com/mbta/ueberauth_cognito/actions/workflows/elixir.yml)
 
-An Ueberauth Strategy for AWS Cognito.
+> An Ueberauth Strategy for AWS Cognito.
 
 ## Installation
 
 Add `:ueberauth` and `:ueberauth_cognito` to your `mix.exs`:
 
-```ex
+```elixir
 defp deps do
   [
     # ...
@@ -20,7 +20,7 @@ end
 
 Configure Ueberauth to use this strategy:
 
-```ex
+```elixir
 config :ueberauth, Ueberauth,
   providers: [
     cognito: {Ueberauth.Strategy.Cognito, []}
@@ -29,7 +29,7 @@ config :ueberauth, Ueberauth,
 
 and configure the required values:
 
-```ex
+```elixir
 config :ueberauth, Ueberauth.Strategy.Cognito,
   auth_domain: {System, :get_env, ["COGNITO_DOMAIN"]},
   client_id: {System, :get_env, ["COGNITO_CLIENT_ID"]},
@@ -42,7 +42,7 @@ The values can be configured with an MFA, or simply a string.
 
 Add the routes to the router:
 
-```ex
+```elixir
 scope "/auth", SignsUiWeb do
   pipe_through([:redirect_prod_http, :browser])
   get("/:provider", AuthController, :request)
@@ -52,7 +52,7 @@ end
 
 and create the corresponding controller:
 
-```ex
+```elixir
 defmodule SignsUiWeb.AuthController do
   use SignsUiWeb, :controller
   plug(Ueberauth)
@@ -84,7 +84,7 @@ config :my_app, Ueberauth,
 
 and configure the required values for the provider (make sure to use the same otp_app name)
 
-```ex
+```elixir
 config :my_app, Ueberauth.Strategy.Cognito,
   auth_domain: {System, :get_env, ["COGNITO_DOMAIN"]},
   client_id: {System, :get_env, ["COGNITO_CLIENT_ID"]},
@@ -95,7 +95,7 @@ config :my_app, Ueberauth.Strategy.Cognito,
 
 In your controller, when using the Ueberauth plug, you should pass the `:otp_app` option, for example:
 
-```ex
+```elixir
 defmodule SignsUiWeb.AuthController do
   use SignsUiWeb, :controller
   plug(Ueberauth, otp_app: :my_app)
@@ -108,3 +108,10 @@ defmodule SignsUiWeb.AuthController do
 Cognito supports [using refresh tokens](https://www.oauth.com/oauth2-servers/access-tokens/refreshing-access-tokens/) to automatically obtain new access tokens for users whose access tokens expire. If your application has a refresh token handy, you can redirect to the callback URL with the `refresh_token` param set, and Ueberauth will attempt to use the given refresh token value to obtain a fresh access token.
 
 The refresh token for an access token is issued at the same time as the access token, and is available in the `Ueberauth.Auth.Credentials` struct. Whether to use refresh tokens, and where to store them if used, is an implementation detail. Your first instinct might be to store them in a cookie, but they can sometimes exceed the maximum possible cookie size. An alternative is to store an identifier (which could be a username, or simply a random nonce) in a cookie, and create a GenServer that maps these identifiers to refresh tokens. This has the advantage of not revealing the refresh tokens to the end user, if this is a consideration.
+
+## Copyright and License
+
+Copyright (c) 2019 Massachusetts Bay Transportation Authority
+
+This work is free. You can redistribute it and/or modify it under the
+terms of the MIT License. See the [LICENSE.md](./LICENSE.md) file for more details.
