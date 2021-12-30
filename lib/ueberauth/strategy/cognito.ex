@@ -36,7 +36,8 @@ defmodule Ueberauth.Strategy.Cognito do
   def handle_request!(conn) do
     %{
       auth_domain: auth_domain,
-      client_id: client_id
+      client_id: client_id,
+      scope: scope
     } = Config.get_config(otp_app(conn))
 
     optional_params =
@@ -54,8 +55,7 @@ defmodule Ueberauth.Strategy.Cognito do
         response_type: "code",
         client_id: client_id,
         redirect_uri: callback_url(conn),
-        # TODO - make dynamic (accepting PRs!):
-        scope: "openid profile email"
+        scope: scope
       )
       |> with_state_param(conn)
 

@@ -558,4 +558,31 @@ defmodule Ueberauth.Strategy.CognitoTest do
     # clean up
     Application.delete_env(:custom_app, Ueberauth.Strategy.Cognito)
   end
+
+  test "scope configuration can be set" do
+    Application.put_env(:ueberauth_with_custom_scope, Ueberauth.Strategy.Cognito, %{
+      auth_domain: "testdomain.com",
+      client_id: "the_client_id",
+      client_secret: {Ueberauth.Strategy.CognitoTest.Identity, :id, ["the_client_secret"]},
+      user_pool_id: "the_user_pool_id",
+      aws_region: "us-east-1",
+      scope: "openid profile email custom_scope"
+    })
+
+    conn =
+      conn(:get, "/auth/cognito")
+      |> put_private(:ueberauth_request_options, options: [otp_app: :ueberauth_with_custom_scope])
+      |> init_test_session(%{})
+      |> Plug.Conn.fetch_query_params()
+      |> Cognito.handle_request!()
+
+    {_, resp_location} =
+      conn.resp_headers
+      |> Enum.find(fn {key, _val} -> key == "location" end)
+
+    assert resp_location =~ "scope=openid+profile+email+custom_scope"
+
+    # clean up
+    Application.delete_env(:ueberauth_with_custom_scope, Ueberauth.Strategy.Cognito)
+  end
 end
