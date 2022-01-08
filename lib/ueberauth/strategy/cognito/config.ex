@@ -14,18 +14,15 @@ defmodule Ueberauth.Strategy.Cognito.Config do
     :jwt_verifier
   ]
 
-  @scope_keys [
-    :scope
-  ]
-
   @optional_keys [
     :uid_field,
-    :name_field
+    :name_field,
+    :scope
   ]
 
   @enforce_keys @strategy_keys ++ @dependency_keys
 
-  defstruct @enforce_keys ++ @optional_keys ++ @scope_keys
+  defstruct @enforce_keys ++ @optional_keys
 
   @doc false
   def get_config(otp_app) do
@@ -46,11 +43,6 @@ defmodule Ueberauth.Strategy.Cognito.Config do
         )
     }
 
-    scope_config =
-      Map.new(@scope_keys, fn c ->
-        {c, config_value(config[c]) || "openid profile email"}
-      end)
-
     optional_config =
       Map.new(@optional_keys, fn c ->
         {c, config_value(config[c])}
@@ -60,7 +52,6 @@ defmodule Ueberauth.Strategy.Cognito.Config do
       optional_config
       |> Map.merge(strategy_config)
       |> Map.merge(dependency_config)
-      |> Map.merge(scope_config)
 
     struct(
       __MODULE__,

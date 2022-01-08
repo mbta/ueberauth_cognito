@@ -55,7 +55,7 @@ defmodule Ueberauth.Strategy.Cognito do
         response_type: "code",
         client_id: client_id,
         redirect_uri: callback_url(conn),
-        scope: scope
+        scope: scope || "openid profile email"
       )
       |> with_state_param(conn)
 
