@@ -113,5 +113,4 @@ The refresh token for an access token is issued at the same time as the access t
 
 Copyright (c) 2019 Massachusetts Bay Transportation Authority
 
-This work is free. You can redistribute it and/or modify it under the
-terms of the MIT License. See the [LICENSE.md](./LICENSE.md) file for more details.
+Source code licensed under [MIT License](./LICENSE.md).
