@@ -16,7 +16,8 @@ defmodule Ueberauth.Strategy.Cognito.Config do
 
   @optional_keys [
     :uid_field,
-    :name_field
+    :name_field,
+    :scope
   ]
 
   @enforce_keys @strategy_keys ++ @dependency_keys
