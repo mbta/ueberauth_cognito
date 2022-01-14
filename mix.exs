@@ -8,10 +8,12 @@ defmodule UeberauthCognito.MixProject do
     [
       app: :ueberauth_cognito,
       name: "Ueberauth Cognito",
+      source_url: @source_url,
       version: @version,
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: LcovEx],
+      description: "An Ueberauth strategy for integrating with AWS Cognito",
       package: package(),
       deps: deps(),
       docs: docs()
@@ -37,7 +39,6 @@ defmodule UeberauthCognito.MixProject do
 
   defp package do
     [
-      description: "An Ueberauth strategy for integrating with AWS Cognito",
       licenses: ["MIT"],
       maintainers: [
         "Gabe Durazo <gdurazo@mbta.com>",
