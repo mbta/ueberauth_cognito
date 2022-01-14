@@ -1,36 +1,31 @@
 defmodule UeberauthCognito.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/mbta/ueberauth_cognito"
   @version "0.3.0"
-  @url "https://github.com/mbta/ueberauth_cognito"
 
   def project do
     [
       app: :ueberauth_cognito,
+      name: "Ueberauth Cognito",
+      source_url: @source_url,
       version: @version,
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: deps(),
       test_coverage: [tool: LcovEx],
-      description: description(),
+      description: "An Ueberauth strategy for integrating with AWS Cognito",
       package: package(),
-      name: "Ueberauth AWS Cognito Strategy",
-      source_url: @url,
-      docs: [
-        main: "readme",
-        extras: ["README.md"]
-      ]
+      deps: deps(),
+      docs: docs()
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:lcov_ex, "~> 0.2", only: [:dev, :test], runtime: false},
@@ -38,22 +33,35 @@ defmodule UeberauthCognito.MixProject do
       {:jason, "~> 1.0"},
       {:jose, "~> 1.0"},
       {:ueberauth, "~> 0.7"},
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.26.0", only: :dev, runtime: false}
     ]
-  end
-
-  defp description do
-    "An Ueberauth strategy for integrating with AWS Cognito"
   end
 
   defp package do
     [
       licenses: ["MIT"],
-      links: %{"GitHub" => @url},
       maintainers: [
         "Gabe Durazo <gdurazo@mbta.com>",
         "Eddie Maldonado <emaldonado@mbta.com>"
-      ]
+      ],
+      links: %{
+        "Changelog" => "https://hexdocs.pm/ueberauth_cognito/changelog.html",
+        "GitHub" => @source_url
+      },
+    ]
+  end
+
+  defp docs do
+    [
+      extras: [
+        "CHANGELOG.md": [],
+        "LICENSE.md": [title: "License"],
+        "README.md": [title: "Overview"]
+      ],
+      main: "readme",
+      source_url: @source_url,
+      source_ref: "#{@version}",
+      formatters: ["html"]
     ]
   end
 end
