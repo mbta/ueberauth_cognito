@@ -159,9 +159,16 @@ defmodule Ueberauth.Strategy.Cognito do
     params = %{
       grant_type: "refresh_token",
       refresh_token: refresh_token,
-      client_id: config.client_id,
-      client_secret: config.client_secret
+      client_id: config.client_id
     }
+
+    # client_secret must be set only if set
+    params =
+      case is_binary(config.client_secret) &&
+             String.length(String.trim(config.client_secret)) > 0 do
+        true -> Map.put(params, :client_secret, config.client_secret)
+        false -> params
+      end
 
     response = post_to_token_endpoint(params, config)
 
@@ -172,15 +179,25 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp post_to_token_endpoint(params, config) do
-    auth = Base.encode64("#{config.client_id}:#{config.client_secret}")
+    headers = [
+      {"content-type", "application/x-www-form-urlencoded"}
+    ]
+
+    # auth header must be added only if client_secret is set
+    headers =
+      case is_binary(config.client_secret) do
+        true ->
+          auth = Base.encode64("#{config.client_id}:#{config.client_secret}")
+          headers ++ [{"authorization", "Basic #{auth}"}]
+
+        false ->
+          headers
+      end
 
     config.http_client.request(
       :post,
       "https://#{config.auth_domain}/oauth2/token",
-      [
-        {"content-type", "application/x-www-form-urlencoded"},
-        {"authorization", "Basic #{auth}"}
-      ],
+      headers,
       URI.encode_query(params)
     )
   end

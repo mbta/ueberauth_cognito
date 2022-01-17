@@ -199,6 +199,37 @@ defmodule Ueberauth.Strategy.CognitoTest do
              }
     end
 
+    test "puts token information in conn if successful response from AWS without client_secret" do
+      Application.put_env(:no_client_secret, :__http_client, FakeHackneySuccess)
+
+      # set an environment with a custom app name
+      Application.put_env(:no_client_secret, Ueberauth.Strategy.Cognito, %{
+        auth_domain: "testdomain.com",
+        client_id: "the_client_id",
+        user_pool_id: "the_user_pool_id",
+        aws_region: "us-east-1"
+        })
+
+      conn =
+        conn(:get, "/auth/cognito/callback?refresh_token=abc")
+        |> put_private(:ueberauth_request_options, options: [otp_app: :no_client_secret])
+        |> init_test_session(%{})
+        |> fetch_session()
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      # clean up
+      Application.delete_env(:no_client_secret, Ueberauth.Strategy.Cognito)
+
+      assert %{"email" => "foo"} = conn.private.cognito_id_token
+      assert conn.private.cognito_token == %{
+               "access_token" => "the_access_token",
+               "id_token" => "header.eyJhZGRyZXNzIjoiSmFwYW4iLCJhdF9oYXNoIjoiaGFzaCIsImF1ZCI6IjNyZ2NmbWE5cWI2b2wzMDBzYm8zZTM3YTI5IiwiYXV0aF90aW1lIjoxNTg5Mzg1OTMzLCJiaXJ0aGRhdGUiOiIyMDIwLTA1LTE1IiwiY29nbml0bzpncm91cHMiOlsiYXAtbm9ydGhlYXN0LTFfeHh4eCJdLCJjb2duaXRvOnVzZXJuYW1lIjoiVXNlck5hbWUiLCJlbWFpbCI6ImZvbyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXhwIjoxNTg5Mzg5NTMzLCJmYW1pbHlfbmFtZSI6IkZhbWlseSIsImdpdmVuX25hbWUiOiJHaXZlbiIsImlhdCI6MTU4OTM4NTkzMywiaWRlbnRpdGllcyI6W3siZGF0ZUNyZWF0ZWQiOiIxNTg5Mzg0Mzc5Njc1IiwiaXNzdWVyIjoidXJuOnh4eHguY29tIiwicHJpbWFyeSI6InRydWUiLCJwcm92aWRlck5hbWUiOiJpZHAtbmFtZSIsInByb3ZpZGVyVHlwZSI6IlNBTUwiLCJ1c2VySWQiOiJ1c2VyLWlkIn1dLCJpc3MiOiJodHRwczovL2NvZ25pdG8taWRwLmFwLW5vcnRoZWFzdC0xLmFtYXpvbmF3cy5jb20vYXAtbm9ydGhlYXN0LTFfeHh4eCIsIm5hbWUiOiJVc2VyTmFtZSIsIm5pY2tuYW1lIjoiTmlja25hbWUiLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwicGljdHVyZSI6Imh0dHBzOi8vZXhhbXBsZS5jb20vaW1nIiwic3ViIjoieHh4eCIsInRva2VuX3VzZSI6ImlkIn0.signature",
+               "refresh_token" => "a_refresh_token"
+             }
+
+    end
+
     test "returns error if AWS responds with a non-200 for JWT" do
       Application.put_env(:ueberauth_cognito, :__http_client, FakeHackneyError)
 
