@@ -103,12 +103,6 @@ defmodule SignsUiWeb.AuthController do
   ...
 ```
 
-## Refreshing access tokens
-
-Cognito supports [using refresh tokens](https://www.oauth.com/oauth2-servers/access-tokens/refreshing-access-tokens/) to automatically obtain new access tokens for users whose access tokens expire. If your application has a refresh token handy, you can redirect to the callback URL with the `refresh_token` param set, and Ueberauth will attempt to use the given refresh token value to obtain a fresh access token.
-
-The refresh token for an access token is issued at the same time as the access token, and is available in the `Ueberauth.Auth.Credentials` struct. Whether to use refresh tokens, and where to store them if used, is an implementation detail. Your first instinct might be to store them in a cookie, but they can sometimes exceed the maximum possible cookie size. An alternative is to store an identifier (which could be a username, or simply a random nonce) in a cookie, and create a GenServer that maps these identifiers to refresh tokens. This has the advantage of not revealing the refresh tokens to the end user, if this is a consideration.
-
 ## Copyright and License
 
 Copyright (c) 2019 Massachusetts Bay Transportation Authority
