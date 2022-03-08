@@ -67,24 +67,7 @@ defmodule Ueberauth.Strategy.Cognito do
 
   @doc """
   Handle the callback step of the strategy.
-
-  Note that if the `refresh_token` param set in your `conn`, this will attempt to use the
-  given refresh token rather than the normal Cognito flow.
   """
-  def handle_callback!(%Plug.Conn{params: %{"refresh_token" => refresh_token}} = conn) do
-    config = Config.get_config(otp_app(conn))
-
-    with {:ok, token} <- request_token_refresh(refresh_token, config) do
-      extract_and_verify_token(conn, token, config)
-    else
-      {:error, :cannot_refresh_access_token} ->
-        set_errors!(
-          conn,
-          error("refresh_token_failure", "Non-200 error code from AWS when using refresh token")
-        )
-    end
-  end
-
   def handle_callback!(%Plug.Conn{} = conn) do
     conn
     |> fetch_session()
@@ -152,22 +135,6 @@ defmodule Ueberauth.Strategy.Cognito do
     case process_json_response(response, config.http_client) do
       {:ok, decoded_json} -> {:ok, decoded_json}
       {:error, _} -> {:error, :cannot_fetch_tokens}
-    end
-  end
-
-  defp request_token_refresh(refresh_token, config) do
-    params = %{
-      grant_type: "refresh_token",
-      refresh_token: refresh_token,
-      client_id: config.client_id,
-      client_secret: config.client_secret
-    }
-
-    response = post_to_token_endpoint(params, config)
-
-    case process_json_response(response, config.http_client) do
-      {:ok, decoded_json} -> {:ok, decoded_json}
-      {:error, _} -> {:error, :cannot_refresh_access_token}
     end
   end
 
