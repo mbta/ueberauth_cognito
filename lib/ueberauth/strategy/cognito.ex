@@ -85,6 +85,12 @@ defmodule Ueberauth.Strategy.Cognito do
     end
   end
 
+  defp exchange_code_for_token(
+         %Plug.Conn{params: %{"error" => _, "error_description" => error_description}} = conn
+       ) do
+    set_errors!(conn, error("upstream_error", error_description))
+  end
+
   defp exchange_code_for_token(conn) do
     set_errors!(conn, error("no_code", "Missing code param"))
   end

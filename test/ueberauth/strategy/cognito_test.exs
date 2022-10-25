@@ -198,6 +198,29 @@ defmodule Ueberauth.Strategy.CognitoTest do
              }
     end
 
+    test "returns error if error provided from Cognito" do
+      conn =
+        conn(
+          :get,
+          "/auth/cognito/callback?error_description=Error+in+SAML+Identity+Provider%3A+No+SAML+assertion+found+in+the+SAML+response.+&error=access_denied"
+        )
+        |> init_test_session(%{})
+        |> Plug.Conn.fetch_query_params()
+        |> Cognito.handle_callback!()
+
+      assert %{
+               ueberauth_failure: %Ueberauth.Failure{
+                 errors: [
+                   %Ueberauth.Failure.Error{
+                     message_key: "upstream_error",
+                     message:
+                       "Error in SAML Identity Provider: No SAML assertion found in the SAML response. "
+                   }
+                 ]
+               }
+             } = conn.assigns
+    end
+
     test "returns error if no code provided" do
       conn =
         conn(:get, "/auth/cognito/callback?state=123")
