@@ -47,7 +47,7 @@ defmodule UeberauthCognito.MixProject do
       links: %{
         "Changelog" => "https://hexdocs.pm/ueberauth_cognito/changelog.html",
         "GitHub" => @source_url
-      },
+      }
     ]
   end
 

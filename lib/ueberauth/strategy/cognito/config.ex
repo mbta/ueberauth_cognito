@@ -25,12 +25,16 @@ defmodule Ueberauth.Strategy.Cognito.Config do
   defstruct @enforce_keys ++ @optional_keys
 
   @doc false
-  def get_config(otp_app) do
-    config = Application.get_env(otp_app || :ueberauth, Ueberauth.Strategy.Cognito) || %{}
+  def get_config(conn) do
+    options = Ueberauth.Strategy.Helpers.options(conn) || []
+    otp_app = Keyword.get(options, :otp_app, :ueberauth)
+
+    config =
+      Application.get_env(otp_app, Ueberauth.Strategy.Cognito) || %{}
 
     strategy_config =
       Map.new(@strategy_keys, fn c ->
-        {c, config_value(config[c])}
+        {c, config_value(Keyword.get(options, c)) || config_value(config[c])}
       end)
 
     dependency_config = %{
@@ -45,7 +49,7 @@ defmodule Ueberauth.Strategy.Cognito.Config do
 
     optional_config =
       Map.new(@optional_keys, fn c ->
-        {c, config_value(config[c])}
+        {c, config_value(Keyword.get(options, c)) || config_value(config[c])}
       end)
 
     overall_config =

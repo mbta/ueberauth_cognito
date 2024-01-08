@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Added per provider configuration, which allows multiple Cognito providers to be set for different user pools.
+
 ## v0.4.0 (2022-03-08)
 
 - BREAKING: remove option to handle refresh tokens by passing as an argument to the callback URL. This approach involved transmitting the refresh token to the browser and as such was in violation of the [OAuth 2.0 RFC](https://datatracker.ietf.org/doc/html/rfc6749#section-10.4).
