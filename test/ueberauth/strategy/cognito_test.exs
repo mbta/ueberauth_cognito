@@ -474,4 +474,34 @@ defmodule Ueberauth.Strategy.CognitoTest do
     # clean up
     Application.delete_env(:ueberauth_with_custom_scope, Ueberauth.Strategy.Cognito)
   end
+
+  test "provider configuration overrides strategy config" do
+    Application.put_env(:ueberauth_with_custom_scope, Ueberauth.Strategy.Cognito, %{
+      auth_domain: "testdomain.com",
+      client_id: "the_client_id",
+      client_secret: {Ueberauth.Strategy.CognitoTest.Identity, :id, ["the_client_secret"]},
+      user_pool_id: "the_user_pool_id",
+      aws_region: "us-east-1",
+      scope: "openid profile email custom_scope"
+    })
+
+    conn =
+      conn(:get, "/auth/cognito")
+      |> put_private(:ueberauth_request_options,
+        options: [client_id: "other_client_id", scope: "conn_scope"]
+      )
+      |> init_test_session(%{})
+      |> Plug.Conn.fetch_query_params()
+      |> Cognito.handle_request!()
+
+    {_, resp_location} =
+      conn.resp_headers
+      |> Enum.find(fn {key, _val} -> key == "location" end)
+
+    assert resp_location =~ "client_id=other_client_id"
+    assert resp_location =~ "scope=conn_scope"
+
+    # clean up
+    Application.delete_env(:ueberauth_with_custom_scope, Ueberauth.Strategy.Cognito)
+  end
 end

@@ -38,7 +38,7 @@ defmodule Ueberauth.Strategy.Cognito do
       auth_domain: auth_domain,
       client_id: client_id,
       scope: scope
-    } = Config.get_config(otp_app(conn))
+    } = Config.get_config(conn)
 
     optional_params =
       @accepted_authorize_params
@@ -75,7 +75,7 @@ defmodule Ueberauth.Strategy.Cognito do
   end
 
   defp exchange_code_for_token(%Plug.Conn{params: %{"code" => code}} = conn) do
-    config = Config.get_config(otp_app(conn))
+    config = Config.get_config(conn)
 
     with {:ok, token} <- request_token(conn, code, config) do
       extract_and_verify_token(conn, token, config)
@@ -232,17 +232,7 @@ defmodule Ueberauth.Strategy.Cognito do
     |> put_private(:cognito_id_token, nil)
   end
 
-  defp otp_app(conn) do
-    default_app = :ueberauth
-
-    if opts = options(conn) do
-      Keyword.get(opts, :otp_app, default_app)
-    else
-      default_app
-    end
-  end
-
   defp option(conn, key) do
-    Map.get(Config.get_config(otp_app(conn)), key) || Keyword.get(default_options(), key)
+    Map.get(Config.get_config(conn), key) || Keyword.get(default_options(), key)
   end
 end
